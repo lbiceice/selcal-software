@@ -35,7 +35,7 @@ from selcal.workflow_config import (
     encode_workflow_config,
 )
 from selcal.workflow_export import verify_export
-from selcal.workflow_store import _is_link, read_record
+from selcal.workflow_store import _is_link, read_record, refuse_existing_path
 
 _ID = re.compile(r"[0-9a-f]{32}\Z")
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
@@ -261,6 +261,7 @@ def _transport_zip(members: dict[str, bytes], limit: int) -> bytes:
 
 def _write_new(path: Path, data: bytes) -> None:
     _real_directory(path.parent)
+    refuse_existing_path(path)
     with path.open("xb") as stream:
         stream.write(data)
         stream.flush()

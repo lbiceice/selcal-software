@@ -54,7 +54,13 @@ from selcal.workflow_config import (
     decode_workflow_config,
     encode_workflow_config,
 )
-from selcal.workflow_store import RecordStoreError, read_method, read_record, write_record
+from selcal.workflow_store import (
+    RecordStoreError,
+    read_method,
+    read_record,
+    refuse_existing_path,
+    write_record,
+)
 
 CONFIG_BYTES = 65_536
 RECORD_SCHEMAS = ("selcal.workflow-record.v1", "selcal.workflow-record.v2")
@@ -822,6 +828,7 @@ def report_record(
         "replay": "NOT_PERFORMED",
     }
     payload = _render_report(record, summary, max_bytes)
+    refuse_existing_path(output_path)
     with Path(output_path).open("xb") as stream:
         stream.write(payload)
     return summary

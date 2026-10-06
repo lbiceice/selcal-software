@@ -4,12 +4,13 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
 from _documentation import public_documentation_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK = REPOSITORY_ROOT / "scripts" / "benchmark_in_memory.py"
 STANDARD_RECEIPT = (
-    REPOSITORY_ROOT / "docs" / "benchmarks" / "in_memory_standard_20261004_r14.json"
+    REPOSITORY_ROOT / "docs" / "benchmarks" / "in_memory_standard_20261006_r16.json"
 )
 
 

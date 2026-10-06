@@ -38,6 +38,7 @@ include docs/benchmarks/in_memory_standard_20261002_r10.json
 include docs/benchmarks/in_memory_standard_20261003_alg.json
 include docs/benchmarks/in_memory_standard_20261004_r13.json
 include docs/benchmarks/in_memory_standard_20261004_r14.json
+include docs/benchmarks/in_memory_standard_20261006_r16.json
 recursive-include tests *.py *.json *.csv
 
 # Existing wheel data-file destinations remain defined in pyproject.toml.

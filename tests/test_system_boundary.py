@@ -5,11 +5,12 @@ import re
 import tomllib
 from pathlib import Path
 
+from _documentation import public_documentation_text
+
 import selcal
 from scripts.audit_repository_hygiene import _release_surface_paths
 from selcal.contracts import PlanRequest, ResolvedScientificPlan
 from selcal.resolution import PlanResolution, resolve_plan
-from _documentation import public_documentation_text
 
 FORBIDDEN_IMPORTS = {"idtxl", "jpype", "pyjnius", "rpy2", "streamlit", "gradio"}
 CONCRETE_ADAPTER_NAMES = {

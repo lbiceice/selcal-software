@@ -291,3 +291,15 @@ def test_consistently_rehashed_bytes_are_accepted_without_claiming_authenticity(
             (replacement, hashlib.sha256(replacement).hexdigest()),
         )
     assert _store().read_record(path, max_bytes=100_000) == {**MEMBERS, "result": replacement}
+
+
+def test_refuse_existing_path_refuses_a_dangling_link_before_any_open(tmp_path) -> None:
+    # Windows exclusive creation follows a dangling link (hosted CI, 2026-10-06); the name check
+    # must refuse it on every platform before os.open is reached.
+    store = _store()
+    path = tmp_path / "occupied.html"
+    symlink_or_skip(path, tmp_path / "missing-target.html")
+    with pytest.raises(FileExistsError):
+        store.refuse_existing_path(path)
+    assert not (tmp_path / "missing-target.html").exists()
+    store.refuse_existing_path(tmp_path / "free.html")  # a free name passes

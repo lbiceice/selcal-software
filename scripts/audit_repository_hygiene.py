@@ -65,6 +65,7 @@ _PUBLIC_BENCHMARK_FILES = (
     "in_memory_standard_20261003_alg.json",
     "in_memory_standard_20261004_r13.json",
     "in_memory_standard_20261004_r14.json",
+    "in_memory_standard_20261006_r16.json",
 )
 _MACHINE_PATH_PATTERNS = (
     re.compile(r"/(?:Users|home)/[^/\s\"']+/"),

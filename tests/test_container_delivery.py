@@ -9,9 +9,9 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from _documentation import public_documentation_text
 
 from scripts.audit_repository_hygiene import _release_surface_paths
-from _documentation import public_documentation_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ("Dockerfile", ".dockerignore", "compose.yaml", "compose.ui.yaml")

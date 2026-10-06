@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tomllib
 from pathlib import Path
+
 from _documentation import public_documentation_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]

@@ -16,6 +16,7 @@ from typing import cast
 
 import numpy as np
 import pytest
+from _documentation import public_documentation_text
 
 import selcal
 import selcal.calibration_v2 as calibration_v2
@@ -31,7 +32,6 @@ from selcal.inference import InvalidNullForInferenceError, calibrate_selected_fa
 from selcal.migration_v1_to_v2 import PlanMigrationV1ToV2, migrate_plan_v1_to_v2
 from selcal.resolution import resolve_plan
 from selcal.resolution_v2 import PlanResolutionV2, resolve_plan_v2
-from _documentation import public_documentation_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXECUTION_BUDGET_PROFILE = (

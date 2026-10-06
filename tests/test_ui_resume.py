@@ -84,7 +84,9 @@ def helper(workspace):
     try:
         lines = queue.Queue()
         threading.Thread(target=lambda: lines.put(process.stdout.readline()), daemon=True).start()
-        line = lines.get(timeout=10)
+        # Hosted CI machines can take well over 10 s to start Python and import the helper
+        # (macOS runners, 2026-10-06); this bounds waiting, not the behaviour checked.
+        line = lines.get(timeout=60)
         match = re.fullmatch(r"SelCal local UI: http://127\.0\.0\.1:(\d+)/#token=([^\s]+)\n", line)
         assert match is not None, line
         yield SimpleNamespace(server_port=int(match[1]), token=match[2], pid=process.pid)
@@ -98,7 +100,9 @@ def helper(workspace):
             process.communicate(timeout=5)
 
 
-def poll(server, job_id, predicate, *, timeout=45):
+def poll(server, job_id, predicate, *, timeout=180):
+    # Each committed replicate is slower on hosted Windows runners (2026-10-06); the wait is
+    # bounded, and every assertion about the reached state is unchanged.
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         status, _, body = http_request(server, "GET", f"/api/jobs/{job_id}")

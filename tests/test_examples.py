@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
 from _documentation import public_documentation_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]

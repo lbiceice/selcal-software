@@ -51,6 +51,7 @@ autoindex; alternate schemas need a future format version.
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 import sqlite3
@@ -99,6 +100,16 @@ def _capability(method: str) -> None:
         raise RecordStoreError("UNSUPPORTED_CAPABILITY", f"SQLite {method} is required")
 
 
+def refuse_existing_path(path: str | os.PathLike[str]) -> None:
+    """Raise FileExistsError if anything, including a dangling link, already occupies ``path``.
+
+    Exclusive creation alone refuses a dangling symbolic link on POSIX but follows it on Windows
+    (hosted Windows CI, 2026-10-06), so outputs check the name itself first.
+    """
+    if os.path.lexists(path):
+        raise FileExistsError(errno.EEXIST, "Output already exists", os.fspath(path))
+
+
 def write_record(
     path: str | os.PathLike[str], members: Mapping[str, bytes], *, max_bytes: int
 ) -> None:
@@ -133,6 +144,7 @@ def write_record(
         | getattr(os, "O_CLOEXEC", 0)
         | getattr(os, "O_BINARY", 0)
     )
+    refuse_existing_path(path)
     descriptor = os.open(path, flags, 0o600)
     with os.fdopen(descriptor, "wb") as output:
         output.write(image)
