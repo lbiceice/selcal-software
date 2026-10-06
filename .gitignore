@@ -1,0 +1,22 @@
+.DS_Store
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+build/
+dist/
+*.egg-info/
+/docs/api/_build/
+selcal-container-output/
+
+# Large evidence files kept out of git (2026-09-22); each is reproducible or re-downloadable and its
+# SHA-256 is recorded next to it.
+/docs/status/evidence/remedy_confirm_20260920/stage2_inputs/*.npz
+/docs/status/evidence/continuation_20260910/appliances_energy_prediction.zip
+/docs/benchmarks/2026-09-08-pearson-orbit-trace-verified.json
+/docs/status/evidence/orbit_trace_20260908/extracted_orbit_trace.json
+# Third-party paper full texts (redistribution rights not established); digests in
+# docs/research/THIRD_PARTY_PDFS_NOT_IN_GIT.txt
+/docs/research/**/*.pdf

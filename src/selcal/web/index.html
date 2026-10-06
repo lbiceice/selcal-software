@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SelCal · Local analysis</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+<header><p class="eyebrow">SELCAL / OFFLINE WORKSPACE</p><h1>Selection-aware calibration</h1>
+<p>Prepare a lag-selection plan, check it, and run the existing SelCal workflow.</p></header>
+<main>
+  <section aria-labelledby="input-heading">
+    <h2 id="input-heading">1. Input and plan</h2>
+    <div class="actions"><button id="example" type="button">Load included example</button></div>
+    <p id="input-description">Choose an input or load the included example.</p>
+    <div class="grid">
+      <label>Input file (CSV or NPZ)<input id="input-file" type="file" accept=".csv,.npz"></label>
+      <label>Load configuration JSON<input id="config-file" type="file" accept=".json"></label>
+      <label>Input format<select id="format"><option value="csv">CSV</option><option value="npz">NPZ (source and target arrays)</option></select></label>
+      <label>Source column<input id="source-column" value="x"></label>
+      <label>Target column<input id="target-column" value="y"></label>
+      <label>Candidate lags (comma separated)<input id="candidates" value="1, 2, 3"></label>
+      <label>Statistic<select id="statistic"><option>lagged_pearson_v1</option><option>equal_width_binned_nette_v1</option></select></label>
+      <label>Null model<select id="null-model"><option>circular_shift_v2</option><option>circular_shift_exact_v1</option><option>block_shuffle_v2</option></select></label>
+      <label>Statistic parameters (JSON)<textarea id="statistic-params" rows="2">{}</textarea><span class="hint">Pearson: {}. Binned net TE: {"bins": 3}, with bins chosen for your design.</span></label>
+      <label>Null parameters (JSON)<textarea id="null-params" rows="2">{"min_shift": 1}</textarea><span class="hint">Circular: {"min_shift": 1}. Block shuffle: {"block_length": 2}, with a justified block length. Exact circular repeats must match the available nonidentity shifts.</span></label>
+      <label>Selection rule<select id="selection"><option value="max_absolute">Largest absolute statistic</option><option value="max_upper">Largest statistic</option></select></label>
+      <label>Repeats<input id="replicates" inputmode="numeric" value="199"></label>
+      <label>Alpha<input id="alpha" inputmode="decimal" value="0.05"></label>
+      <label>Tie tolerance<input id="tolerance" value="1e-12"></label>
+      <label>Seed (exact integer)<input id="seed" inputmode="numeric" value="17"></label>
+      <label>Byte budget (exact integer)<input id="budget" inputmode="numeric" value="8388608"><span class="hint">Starts at 8 MiB for each checkpoint and result record, including the example. This is not a process-memory limit or a universal input limit.</span></label>
+    </div>
+    <label class="check"><input id="override" type="checkbox">Explicitly allow a plan whose smallest attainable p-value exceeds alpha</label>
+    <p class="hint">The override does not improve resolution or make an unattainable rejection possible. It defaults to off.</p>
+    <details><summary>Advanced: original configuration JSON</summary>
+      <label>Configuration text<textarea id="config-text" rows="18" spellcheck="false"></textarea></label>
+      <p class="hint">This text is submitted unchanged. Integer values are preserved exactly, including large seeds. Form changes update this text; malformed text must be corrected before admission.</p>
+    </details>
+    <div class="actions"><button id="create" type="button">Create job and save input</button></div>
+    <p id="selection-note" class="hint">Input and plan become immutable when saved. Any edit requires a new job.</p>
+  </section>
+  <section aria-labelledby="run-heading">
+    <h2 id="run-heading">2. Validate, run or resume</h2>
+    <label>Saved jobs<select id="saved-jobs"><option value="">Choose a saved job</option></select></label>
+    <p class="hint">Saved entries are observations, not independently verified calculations. Select one to inspect its original configuration and input identity.</p>
+    <div class="actions"><button id="validate" type="button" disabled>Validate</button><button id="run" type="button" disabled>Run</button><button id="resume" type="button" disabled>Resume</button><button id="verify" type="button" disabled>Verify saved result</button><button id="cancel" type="button" disabled>Cancel operation</button></div>
+    <p class="hint">To resume after restarting the helper, select the saved job. Retained replicates are replayed and checked before continuing with the original input, plan and byte budget. Editing the form requires a new job or reselecting the saved job.</p>
+    <p id="notice" role="status" aria-live="polite">Ready.</p>
+    <p id="verification-status" class="hint">No current content check.</p>
+    <p class="hint">Verify saved result checks input, plan and result consistency without replay. It does not authenticate historical execution. A saved check is an observation, not current-byte verification; check again to examine the saved record now.</p>
+    <dl id="result-summary"></dl>
+    <details open><summary>Progress and operation details</summary><pre id="progress">No operation yet.</pre></details>
+    <details><summary>Full terminal result and hashes</summary><pre id="terminal">No result yet.</pre></details>
+    <h3>Saved reports and evidence</h3>
+    <div class="actions"><button id="report" type="button" disabled>Generate HTML report</button><button id="export" type="button" disabled>Export evidence bundle</button></div>
+    <div class="actions"><button id="preview-report" type="button" disabled>Preview HTML report</button><button id="download-report" type="button" disabled>Download HTML report</button><button id="download-record" type="button" disabled>Download result record</button><button id="download-bundle" type="button" disabled>Download evidence ZIP</button></div>
+    <p id="artifact-status" class="hint" role="status" aria-live="polite">No artifact requested in this view.</p>
+    <p class="hint">Files are named <code>selcal-&lt;job&gt;-&lt;operation&gt;-report.html</code> (readable report), <code>…-result.sqlite</code> (the verifiable record for <code>selcal verify</code>; not a spreadsheet) and <code>…-evidence.zip</code> (eleven checked files, including the <code>summary.csv</code>, <code>candidates.csv</code> and <code>replicates.csv</code> tables that open in a spreadsheet). The server re-checks each saved artifact and states its size and SHA-256; this page checks the received size, and the SHA-256 where the browser provides Web Crypto (otherwise the status says only the size was checked), before handing the file to the browser. With no download manager installed, the browser saves it under its own settings, usually its default download folder; if a download manager such as IDM is installed, it may take over and save elsewhere. Only the browser's downloads list, or the manager's completed list, shows whether and where it was saved. The status line also names the checked original inside the workspace folder, which can be copied without any download.</p>
+    <p class="hint">Reports and eleven-file evidence exports check recorded content without replay or authenticating historical execution. Every download checks the saved input, plan, record and artifact again. Availability alone is not verification. The ZIP is a transport copy of the checked eleven files, not a new scientific format.</p>
+    <iframe id="report-preview" title="Checked saved HTML report" sandbox="" hidden></iframe>
+  </section>
+  <section aria-labelledby="limits-heading" class="limits">
+    <h2 id="limits-heading">What this result means</h2>
+    <p>Circular-shift calibration requires a defensible circular exchangeability assumption; block shuffle requires exchangeable blocks with an appropriate block length. Prespecify the candidate family and parameters for your data. Selecting a lag does not establish causality. A non-rejection does not show there is no association.</p>
+    <p>NOT_EVALUABLE means the configured procedure could not supply an evaluable result. It is not p = 1, not non-significance, and not an operational failure. Read its precise failure stage.</p>
+    <p>Resume requires the original code and environment and a valid checkpoint. Interrupted initialization may not leave a recoverable checkpoint. Older jobs without an explicit saved-record reference can use command-line verify, report and export; the UI never guesses old result paths. Final integration, wider usability and release validation remain pending.</p>
+    <p>Keep the terminal open. Press Ctrl-C there to stop this helper and its own active child. Closing this browser tab does not stop the server. Saved inputs, configuration and operation files stay in your workspace.</p>
+  </section>
+</main>
+<footer>Local processing only · No telemetry or remote assets · Basic UI loop</footer>
+</body>
+</html>

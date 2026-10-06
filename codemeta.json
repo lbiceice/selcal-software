@@ -1,0 +1,42 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "SelCal",
+  "description": "Selection-aware calibration of scanned-lag dependence tests between two time series",
+  "version": "0.1.0",
+  "license": "https://spdx.org/licenses/BSD-3-Clause",
+  "programmingLanguage": "Python",
+  "runtimePlatform": "Python >=3.11",
+  "softwareRequirements": [
+    "numpy>=1.26,<2.5"
+  ],
+  "operatingSystem": [
+    "Linux",
+    "macOS",
+    "Windows"
+  ],
+  "developmentStatus": "active",
+  "keywords": [
+    "permutation test",
+    "circular-shift surrogate",
+    "lag selection",
+    "post-selection inference",
+    "time series",
+    "cross-correlation"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Bingbing",
+      "familyName": "Liang",
+      "email": "vincentdsnail@gmail.com",
+      "@id": "https://orcid.org/0009-0007-5344-0594",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "School of AI Engineering, Guangzhou College of Technology and Business"
+      }
+    }
+  ],
+  "codeRepository": "https://github.com/lbiceice/selcal-software",
+  "issueTracker": "https://github.com/lbiceice/selcal-software/issues"
+}

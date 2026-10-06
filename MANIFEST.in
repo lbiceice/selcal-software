@@ -1,0 +1,81 @@
+# Source-snapshot inputs for the documented examples and development commands.
+include .gitignore README.md CHANGELOG.md pyproject.toml uv.lock
+include .github/workflows/ci.yml
+include Dockerfile
+include .dockerignore
+include compose.yaml
+include compose.ui.yaml
+recursive-include examples *.py *.csv *.json
+recursive-include src/selcal/web *.html *.css *.js *.csv *.json
+include scripts/*.py
+exclude scripts/build_public_release.py
+exclude scripts/build_windows_package.py
+recursive-include docs/api *.rst *.py
+recursive-include docs/guide *.md *.png
+include docs/benchmarks/in_memory_standard_20260831.json
+include docs/benchmarks/in_memory_standard_20260831_figure.svg
+include docs/benchmarks/in_memory_standard_20260831_figure.png
+include docs/benchmarks/in_memory_standard_20260908.json
+include docs/benchmarks/in_memory_standard_20260908_figure.svg
+include docs/benchmarks/in_memory_standard_20260908_figure.png
+include docs/benchmarks/in_memory_standard_20260922.json
+include docs/benchmarks/in_memory_standard_20260922_figure.svg
+include docs/benchmarks/in_memory_standard_20260922_figure.png
+include docs/benchmarks/in_memory_standard_20260928.json
+include docs/benchmarks/in_memory_standard_20260928_r5.json
+include docs/benchmarks/in_memory_standard_20260929_f2a.json
+include docs/benchmarks/in_memory_standard_20260929_f2b1.json
+include docs/benchmarks/in_memory_standard_20260929_f2b2.json
+include docs/benchmarks/in_memory_standard_20260929_f2c.json
+include docs/benchmarks/in_memory_standard_20260929_f2c_r1.json
+include docs/benchmarks/in_memory_standard_20260929_f3.json
+include docs/benchmarks/in_memory_standard_20260929_f4b1.json
+include docs/benchmarks/in_memory_standard_20260929_f4b2a.json
+include docs/benchmarks/in_memory_standard_20260929_f4b2a_r2.json
+include docs/benchmarks/in_memory_standard_20260929_f4b2b.json
+include docs/benchmarks/in_memory_standard_20261002_r9.json
+include docs/benchmarks/in_memory_standard_20261002_r10.json
+include docs/benchmarks/in_memory_standard_20261003_alg.json
+include docs/benchmarks/in_memory_standard_20261004_r13.json
+include docs/benchmarks/in_memory_standard_20261004_r14.json
+recursive-include tests *.py *.json *.csv
+
+# Existing wheel data-file destinations remain defined in pyproject.toml.
+# Internal evidence and the following exact maintenance tests remain in the
+# checkout and continue to be collected there. Product tests remain in the sdist.
+# internal dependency evidence and binding
+exclude tests/test_dependency_licence_evidence.py
+# internal historical receipts and readiness
+exclude tests/test_scientific_code_smell_audit.py
+# historical verifier receipt and design hashes
+exclude tests/test_verifier_complexity_slice_v1.py
+# helper for the historical verifier receipt gate
+exclude tests/_verifier_structure_gate_v1.py
+# fixture for the historical verifier gate
+exclude tests/fixtures/verifier_structure_gate_v1.json
+# internal trusted-call design assertions
+exclude tests/test_internal_design_review.py
+# internal authority amendment package
+exclude tests/task10/test_authority_amendment_scope_v1.py
+# internal authority review package v2
+exclude tests/task10/test_authority_review_package_v2.py
+# internal authority review package v3
+exclude tests/task10/test_authority_review_package_v3.py
+# internal authority registry review
+exclude tests/task10/test_registry_cross_representation_v1.py
+# draft manuscript and private repository status checks
+exclude tests/test_manuscript_latex_builder.py
+# unpublished draft headline evidence and numeric bindings
+exclude tests/test_manuscript_number_binding.py
+# internal Windows delivery runner and bundle checks
+exclude tests/test_windows_runner_delivery.py
+# internal Windows delivery runner and bundle checks
+exclude tests/test_windows_package_delivery.py
+# development-only research preparation script
+exclude tests/test_m6_pearson_pair_comparison.py
+# internal release builder and release-inventory assertions
+exclude tests/test_build_public_release.py
+prune docs/superpowers
+prune docs/status
+prune docs/api/_build
+global-exclude __pycache__ *.py[cod] .DS_Store

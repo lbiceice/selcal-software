@@ -1,0 +1,29 @@
+{
+  "upload_type": "software",
+  "title": "SelCal: selection-aware calibration of scanned-lag dependence tests",
+  "version": "0.1.0",
+  "creators": [
+    {
+      "name": "Liang, Bingbing",
+      "affiliation": "School of AI Engineering, Guangzhou College of Technology and Business",
+      "orcid": "0009-0007-5344-0594"
+    }
+  ],
+  "description": "<p>SelCal tests lagged dependence between two time series when the lag is chosen by scanning a pre-declared set of candidate lags. It repeats the complete lag search inside every circular-shift surrogate, can enumerate the whole circular group exactly (null <code>circular_shift_exact_v1</code>), refuses plans whose smallest attainable p-value exceeds alpha (with a circular null and L searched lags the exact p-value cannot fall below L/n), and keeps verifiable, replayable records. Command-line workflow: <code>selcal validate</code>, <code>run</code>, <code>verify --replay</code>, <code>report</code>.</p><p>This source candidate contains software, product tests, documentation and examples. It does not include the accompanying manuscript's unpublished research protocols, simulation results or third-party data; those require a separately reviewed evidence package before a reproducibility claim. The method credited is the tailored-lag circular-shift test (Cannistra et al., eLife 2025; Yuan and Shou, PLoS Biology 2024).</p>",
+  "access_right": "open",
+  "license": "bsd-3-clause",
+  "keywords": [
+    "permutation test",
+    "circular-shift surrogate",
+    "lag selection",
+    "post-selection inference",
+    "time series",
+    "cross-correlation"
+  ],
+  "language": "eng",
+  "related_identifiers": [
+    {"identifier": "10.7554/eLife.108198.1", "relation": "references", "scheme": "doi"},
+    {"identifier": "10.1371/journal.pbio.3002758", "relation": "references", "scheme": "doi"},
+    {"identifier": "10.5281/zenodo.20096919", "relation": "references", "scheme": "doi"}
+  ]
+}

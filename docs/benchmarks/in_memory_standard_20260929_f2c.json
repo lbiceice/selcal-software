@@ -1,0 +1,174 @@
+{
+  "benchmark_contract_sha256": "c3786267f82c0313ecd433fef97e70ff845f620474a2a5e5af314d57da42c17f",
+  "cases": [
+    {
+      "candidate_count": 4,
+      "case_id": "B0025-C04-N0128",
+      "peak_traced_bytes_max": 765652,
+      "planned_replicates": 25,
+      "repeat_count": 3,
+      "result_status_counts": {
+        "complete": 3
+      },
+      "scientific_plan_sha256": "e825a88da9057d0b6137bd113035dadf652cc70d806d02aaa10dc7fe0dd7b9db",
+      "series_length": 128,
+      "wall_seconds": [
+        0.178265125,
+        0.1800515,
+        0.178578625
+      ],
+      "wall_seconds_max": 0.1800515,
+      "wall_seconds_median": 0.178578625,
+      "wall_seconds_min": 0.178265125
+    },
+    {
+      "candidate_count": 4,
+      "case_id": "B0100-C04-N0128",
+      "peak_traced_bytes_max": 2582092,
+      "planned_replicates": 100,
+      "repeat_count": 3,
+      "result_status_counts": {
+        "complete": 3
+      },
+      "scientific_plan_sha256": "3f4417c13baa946870751b56a0e871c59f3a4a163b5831ef93fe4cc66d748f6b",
+      "series_length": 128,
+      "wall_seconds": [
+        0.536204709,
+        0.533057458,
+        0.533583708
+      ],
+      "wall_seconds_max": 0.536204709,
+      "wall_seconds_median": 0.533583708,
+      "wall_seconds_min": 0.533057458
+    },
+    {
+      "candidate_count": 4,
+      "case_id": "B0250-C04-N0128",
+      "peak_traced_bytes_max": 5540520,
+      "planned_replicates": 250,
+      "repeat_count": 3,
+      "result_status_counts": {
+        "complete": 3
+      },
+      "scientific_plan_sha256": "abc28b264d73f21137e462d3c469a81b5cd5e5293d55ff8d2a3c82f2c9533085",
+      "series_length": 128,
+      "wall_seconds": [
+        1.254441709,
+        1.255462208,
+        1.2519125
+      ],
+      "wall_seconds_max": 1.255462208,
+      "wall_seconds_median": 1.254441709,
+      "wall_seconds_min": 1.2519125
+    },
+    {
+      "candidate_count": 2,
+      "case_id": "B0100-C02-N0128",
+      "peak_traced_bytes_max": 1845254,
+      "planned_replicates": 100,
+      "repeat_count": 3,
+      "result_status_counts": {
+        "complete": 3
+      },
+      "scientific_plan_sha256": "524ccfa804bbb6fd556e66ddd6d4cf044a2b83f71bd5a8150fb66d65e2adb9fa",
+      "series_length": 128,
+      "wall_seconds": [
+        0.462625625,
+        0.466012958,
+        0.463190291
+      ],
+      "wall_seconds_max": 0.466012958,
+      "wall_seconds_median": 0.463190291,
+      "wall_seconds_min": 0.462625625
+    },
+    {
+      "candidate_count": 8,
+      "case_id": "B0100-C08-N0128",
+      "peak_traced_bytes_max": 3611439,
+      "planned_replicates": 100,
+      "repeat_count": 3,
+      "result_status_counts": {
+        "complete": 3
+      },
+      "scientific_plan_sha256": "132c1b5a942806e7a80bbbe2a367991c1916122df2695dc9fad4f591064effaf",
+      "series_length": 128,
+      "wall_seconds": [
+        0.680545083,
+        0.679569584,
+        0.683068625
+      ],
+      "wall_seconds_max": 0.683068625,
+      "wall_seconds_median": 0.680545083,
+      "wall_seconds_min": 0.679569584
+    },
+    {
+      "candidate_count": 4,
+      "case_id": "B0100-C04-N0064",
+      "peak_traced_bytes_max": 2575694,
+      "planned_replicates": 100,
+      "repeat_count": 3,
+      "result_status_counts": {
+        "complete": 3
+      },
+      "scientific_plan_sha256": "3f4417c13baa946870751b56a0e871c59f3a4a163b5831ef93fe4cc66d748f6b",
+      "series_length": 64,
+      "wall_seconds": [
+        0.5296345,
+        0.527115583,
+        0.527009084
+      ],
+      "wall_seconds_max": 0.5296345,
+      "wall_seconds_median": 0.527115583,
+      "wall_seconds_min": 0.527009084
+    },
+    {
+      "candidate_count": 4,
+      "case_id": "B0100-C04-N0256",
+      "peak_traced_bytes_max": 2594374,
+      "planned_replicates": 100,
+      "repeat_count": 3,
+      "result_status_counts": {
+        "complete": 3
+      },
+      "scientific_plan_sha256": "3f4417c13baa946870751b56a0e871c59f3a4a163b5831ef93fe4cc66d748f6b",
+      "series_length": 256,
+      "wall_seconds": [
+        0.557430792,
+        0.558130708,
+        0.559157583
+      ],
+      "wall_seconds_max": 0.559157583,
+      "wall_seconds_median": 0.558130708,
+      "wall_seconds_min": 0.557430792
+    }
+  ],
+  "environment": {
+    "machine": "arm64",
+    "numpy": "2.4.6",
+    "platform": "Darwin",
+    "python": "3.11.12",
+    "python_implementation": "CPython",
+    "selcal": "0.1.0"
+  },
+  "execution": {
+    "gpu_used": false,
+    "mode": "single_process",
+    "workers": 1
+  },
+  "harness_identity": {
+    "scheme": "script_sha256_v1",
+    "sha256": "d266fd4d8d12d77952b2f6fb9ba30b2b9246782cc7424edaf230e27914411e22"
+  },
+  "measurement": {
+    "memory": "tracemalloc_python_allocations",
+    "scope": "resolve_calibrate_verify",
+    "timer": "time.perf_counter_ns"
+  },
+  "preset": "standard",
+  "schema": "selcal.benchmark.in-memory.v1",
+  "source_identity": {
+    "file_count": 43,
+    "scheme": "installed_python_sources_v1",
+    "sha256": "cfb87cc76a7823c08cfbc5a748175e6b524db1acc665e7784fdc299289a10cbc"
+  }
+}

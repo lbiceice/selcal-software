@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "selcal"
+version = "0.1.0"
+description = "Selection-aware calibration of scanned-lag dependence tests between two time series"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt", "Licence.txt"]
+authors = [{ name = "Bingbing Liang" }]
+keywords = ["permutation test", "circular shift", "lag selection", "time series", "cross-correlation"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = ["numpy>=1.26,<2.5"]
+
+[project.scripts]
+selcal = "selcal.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2,<2",
+  "mypy>=1.11,<2",
+  "pip>=24,<27",
+  "pytest>=8,<9",
+  "pytest-cov>=5,<7",
+  "ruff>=0.6,<1",
+]
+docs = [
+  "sphinx>=8.2.3,<9",
+]
+benchmark = [
+  "matplotlib>=3.11.1,<4",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["selcal*"]
+
+[tool.setuptools.package-data]
+selcal = ["web/*.html", "web/*.css", "web/*.js", "web/*.csv", "web/*.json"]
+
+[tool.setuptools.data-files]
+"share/selcal/docs/architecture" = [
+  "docs/architecture/m0_m2_boundary.md",
+  "docs/architecture/null_reselection_v2_design.md",
+  "docs/architecture/in_memory_execution_budget_profile_20260828.csv",
+]
+"share/selcal/docs/provenance" = [
+  "docs/provenance/P3_READ_ONLY_BOUNDARY.md",
+  "docs/provenance/SOURCE_ORIGIN.tsv",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/selcal"]

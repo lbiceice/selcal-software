@@ -1,0 +1,26 @@
+services:
+  selcal:
+    image: selcal:local
+    build: .
+    user: '${SELCAL_UID:-1000}:${SELCAL_GID:-1000}'
+    read_only: true
+    init: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    stop_signal: SIGINT
+    stop_grace_period: 30s
+    volumes:
+      - type: bind
+        source: '${SELCAL_INPUT_DIR:-./examples/workflow}'
+        target: /input
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: '${SELCAL_OUTPUT_DIR:-./selcal-container-output}'
+        target: /output
+        read_only: false
+        bind:
+          create_host_path: false

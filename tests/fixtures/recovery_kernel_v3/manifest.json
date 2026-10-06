@@ -1,0 +1,175 @@
+{
+  "scope": "Kernel regression references after R11-02 correctly rounded Pearson sums; not independent scientific validation",
+  "cases": {
+    "sampled_pearson": {
+      "file": "sampled_pearson.json",
+      "bytes": 17018,
+      "sha256": "decdfe327b6b00d3edcd4f9575d05ccb177427c6c55e25381cb4ca8398e22088",
+      "source": [
+        0,
+        1,
+        4,
+        2,
+        5,
+        3
+      ],
+      "target": [
+        4,
+        1,
+        3,
+        0,
+        5,
+        2
+      ],
+      "request": {
+        "candidates": [
+          1,
+          2
+        ],
+        "statistic_name": "lagged_pearson_v1",
+        "statistic_params": {},
+        "selection_rule": "max_upper",
+        "null_name": "circular_shift_v2",
+        "null_params": {
+          "min_shift": 1
+        },
+        "replicates": 9,
+        "alpha": 0.05,
+        "tie_tolerance": 1e-12,
+        "root_seed": 17
+      },
+      "semantic_input_sha256": "7400e38c407052ed38c1315713e902bd77f10872d5cb16630cff4b5a339c9b1d",
+      "scientific_plan_sha256": "6cbfcaffdf87e681f6dcbfde675117911d0f96012e268277af283c1d5496b832"
+    },
+    "exact_pearson": {
+      "file": "exact_pearson.json",
+      "bytes": 10177,
+      "sha256": "7e17b1e184e3e23c598e1887421f9327a14c045f3455bea21f17f3e4b51aa48c",
+      "source": [
+        0,
+        1,
+        4,
+        2,
+        5,
+        3
+      ],
+      "target": [
+        4,
+        1,
+        3,
+        0,
+        5,
+        2
+      ],
+      "request": {
+        "candidates": [
+          1,
+          2
+        ],
+        "statistic_name": "lagged_pearson_v1",
+        "statistic_params": {},
+        "selection_rule": "max_upper",
+        "null_name": "circular_shift_exact_v1",
+        "null_params": {
+          "min_shift": 1
+        },
+        "replicates": 5,
+        "alpha": 0.05,
+        "tie_tolerance": 1e-12,
+        "root_seed": 17
+      },
+      "semantic_input_sha256": "7400e38c407052ed38c1315713e902bd77f10872d5cb16630cff4b5a339c9b1d",
+      "scientific_plan_sha256": "0d9a7b5cf4216e9ec78e45640873f160870d5fc07279a993f945dfcbe5a35595"
+    },
+    "binned": {
+      "file": "binned.json",
+      "bytes": 9685,
+      "sha256": "d2d61c3d5ffc928ef4a8d9e88c664bce983ef98270d31d99654f75937a5a5719",
+      "source": [
+        0,
+        1,
+        0,
+        1,
+        2,
+        1,
+        2,
+        0,
+        2,
+        1
+      ],
+      "target": [
+        1,
+        0,
+        1,
+        2,
+        1,
+        0,
+        2,
+        1,
+        2,
+        0
+      ],
+      "request": {
+        "candidates": [
+          1,
+          2
+        ],
+        "statistic_name": "equal_width_binned_nette_v1",
+        "statistic_params": {
+          "bins": 3
+        },
+        "selection_rule": "max_absolute",
+        "null_name": "block_shuffle_v2",
+        "null_params": {
+          "block_length": 2
+        },
+        "replicates": 5,
+        "alpha": 0.05,
+        "tie_tolerance": 1e-12,
+        "root_seed": 17
+      },
+      "semantic_input_sha256": "6a94fcff177abb947abf0310edab9d68ecee1a09068d074972099f146b6d3965",
+      "scientific_plan_sha256": "8dc3ea6c9dd9eec09d1542efad486b032c6a8f3f439b7c93d4d98294f139000b"
+    },
+    "pre_observed_ne": {
+      "file": "pre_observed_ne.json",
+      "bytes": 1407,
+      "sha256": "ba1c44bf48c316eb2fb95748998e594be283745754ddb92f13458fb6e2bfd355",
+      "source": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "target": [
+        4,
+        1,
+        3,
+        0,
+        5,
+        2
+      ],
+      "request": {
+        "candidates": [
+          1,
+          2
+        ],
+        "statistic_name": "lagged_pearson_v1",
+        "statistic_params": {},
+        "selection_rule": "max_upper",
+        "null_name": "circular_shift_v2",
+        "null_params": {
+          "min_shift": 1
+        },
+        "replicates": 9,
+        "alpha": 0.05,
+        "tie_tolerance": 1e-12,
+        "root_seed": 17
+      },
+      "semantic_input_sha256": "0736b73c1bda37b6045962cf873d5fd9859881d404725ee6015c6adeaa424474",
+      "scientific_plan_sha256": "6cbfcaffdf87e681f6dcbfde675117911d0f96012e268277af283c1d5496b832"
+    }
+  }
+}

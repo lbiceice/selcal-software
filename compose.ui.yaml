@@ -1,0 +1,4 @@
+services:
+  selcal:
+    network_mode: host
+    command: [ui, --workspace, /output/ui, --port, '${SELCAL_UI_PORT:-8765}', --no-browser]

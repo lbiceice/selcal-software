@@ -1,0 +1,16 @@
+{
+  "schema": "selcal.workflow-config.v1",
+  "input": {"format": "csv", "source_column": "x", "target_column": "y"},
+  "plan": {
+    "candidates": [1, 2, 3],
+    "statistic_name": "lagged_pearson_v1",
+    "statistic_params": {},
+    "selection_rule": "max_absolute",
+    "null_name": "circular_shift_v2",
+    "null_params": {"min_shift": 1},
+    "replicates": 199,
+    "alpha": 0.05,
+    "tie_tolerance": 1e-12,
+    "root_seed": 17
+  }
+}

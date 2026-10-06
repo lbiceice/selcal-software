@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use SelCal, please cite it as below."
+title: "SelCal: selection-aware calibration of scanned-lag dependence tests"
+version: "0.1.0"
+license: BSD-3-Clause
+type: software
+repository-code: "https://github.com/lbiceice/selcal-software"
+authors:
+  - family-names: Liang
+    given-names: Bingbing
+    email: vincentdsnail@gmail.com
+    affiliation: "School of AI Engineering, Guangzhou College of Technology and Business"
+    orcid: "https://orcid.org/0009-0007-5344-0594"
+keywords:
+  - permutation test
+  - circular-shift surrogate
+  - lag selection
+  - post-selection inference
+  - time series
+  - cross-correlation
+abstract: >-
+  SelCal tests lagged dependence between two time series when the lag is chosen
+  by scanning a pre-declared set of candidate lags. It repeats the complete lag
+  search inside every circular-shift surrogate, can enumerate the whole circular
+  group exactly, refuses plans whose smallest attainable p-value exceeds alpha,
+  and keeps verifiable, replayable records of every analysis.

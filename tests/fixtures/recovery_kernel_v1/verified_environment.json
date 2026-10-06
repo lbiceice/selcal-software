@@ -1,0 +1,52 @@
+{
+  "schema": "selcal.recovery-kernel-fixture-environment.v1",
+  "purpose": "reference full-byte reproduction verified environment",
+  "not_original_generation_blas_attestation": true,
+  "environment": {
+    "python": "3.11.12 (main, May 17 2025, 13:40:36) [Clang 20.1.4 ]",
+    "numpy": "2.4.6",
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "machine": "arm64",
+    "byteorder": "little",
+    "blas": {
+      "name": "accelerate",
+      "found": true,
+      "version": "unknown",
+      "detection method": "system",
+      "openblas configuration": "unknown"
+    }
+  },
+  "source_identity": [
+    {
+      "path": "src/selcal/calibration_v2.py",
+      "sha256": "d93c527645fbb0d43bd9dec7301b9d03337a0a4e412af767952f6ae55a03187b"
+    },
+    {
+      "path": "src/selcal/result_wire.py",
+      "sha256": "70df28245a2db52b66b63aae2f2091cefb0c325c7f828f3b9ec5c30be04a8d14"
+    }
+  ],
+  "cases": [
+    {
+      "case": "sampled_pearson",
+      "sha256": "dd952e03320bcabec75ca6a915e3ef90e11c1003362d3f33e467c26f4784000a",
+      "full_byte_reproduction": true
+    },
+    {
+      "case": "exact_pearson",
+      "sha256": "576bcb58deb5a398b2176974b477e27a75b6b6bb8269bf45939152fb1ab4a69b",
+      "full_byte_reproduction": true
+    },
+    {
+      "case": "binned",
+      "sha256": "d2d61c3d5ffc928ef4a8d9e88c664bce983ef98270d31d99654f75937a5a5719",
+      "full_byte_reproduction": true
+    },
+    {
+      "case": "pre_observed_ne",
+      "sha256": "126f240837dc0fca3ffee06aedfdc53e843d8660fb959276288e256a8a334eec",
+      "full_byte_reproduction": true
+    }
+  ],
+  "scientific_validation": false
+}
