@@ -437,16 +437,19 @@ def test_callback_drift_is_rejected_before_next_payload(target, monkeypatch):
 
 IDENTITY_NETTE_V1 = "no_hidden_transform|observed_equal_width_edges_reused|common_support_max_lag"
 IDENTITY_NETTE_V2 = (
-    "no_hidden_transform|observed_exact_rational_equal_width_edges_reused|common_support_max_lag"
+    "no_hidden_transform|observed_exact_rational_equal_width_edges_reused"
+    "|exact_count_decimal_information|common_support_max_lag"
 )
 
 
 @pytest.mark.parametrize("name", ["sampled_pearson", "exact_pearson", "binned", "pre_observed_ne"])
 def test_r16_reference_change_is_exactly_the_tie_rule_and_the_nette_identity(name):
-    """R16 (2026-10-06): exceedance ties within 64 scaled ULP count; NetTE edges are exact.
+    """R16 (2026-10-06): exceedance ties within 64 scaled ULP count; NetTE edges are exact and
+    its information is computed from exact counts with decimal logarithms.
 
-    Every value stays bit-identical. The binned case changes only its exceedance count and p,
-    by exactly the ties the new rule counts (a ln2/4 tie lost to rounding), and its identity.
+    The Pearson and failure cases are byte-identical. In the binned case NetTE values move by at
+    most one scaled ULP, its identity is renamed, and E and p change by exactly the ties the new
+    rule counts (a ln2/4 tie lost to rounding); every other field is unchanged.
     """
     from selcal.contracts_v2 import reaches_observed_decision
 
@@ -467,6 +470,10 @@ def test_r16_reference_change_is_exactly_the_tie_rule_and_the_nette_identity(nam
             assert (before, after) == (IDENTITY_NETTE_V1, IDENTITY_NETTE_V2)
         elif path in ("/exceedance_count", "/p_value"):
             continue
+        elif isinstance(before, float) and path.endswith(
+            ("/estimate", "/selection_score", "/decision_statistic")
+        ):
+            assert abs(after - before) <= math.ulp(max(abs(before), abs(after), 1.0)), path
         else:
             assert before == after, path
     observed = float.fromhex(old["observed_selection"]["decision_statistic"]["$float64"])

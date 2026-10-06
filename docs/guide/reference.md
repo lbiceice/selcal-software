@@ -387,7 +387,9 @@ fields without executing any surrogate replicates. `NOT_EVALUABLE is not evidenc
 ## Exercise binned NetTE with block shuffle
 
 Binned NetTE uses equal-width bins between the observed minimum and maximum, with edges computed
-exactly and rounded once, so they do not depend on the NumPy version. A value lying exactly on an
+exactly and rounded once, so they do not depend on the NumPy version. The information is
+computed from the exact counts with 50-digit decimal logarithms and rounded once, so NetTE values
+are the same on every platform. A value lying exactly on an
 inner edge goes to the upper bin. Integer or otherwise discrete data often lie on edges; rescaling
 such data by a factor that is not exact in binary floating point (for example 0.1) moves those values
 off the edges and can change the result. Choose the number of bins with the data's values in mind.

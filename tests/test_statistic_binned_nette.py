@@ -436,7 +436,8 @@ def test_bound_evaluation_uses_exact_indexing_support_rules_and_identities() -> 
         f"selcal.equal_width_binned_nette.v1|numpy={np.__version__}|bins=3|units=nats"
     }
     assert {result.preprocessing_identity for result in upper} == {
-        "no_hidden_transform|observed_exact_rational_equal_width_edges_reused|common_support_max_lag"
+        "no_hidden_transform|observed_exact_rational_equal_width_edges_reused"
+        "|exact_count_decimal_information|common_support_max_lag"
     }
     assert np.array_equal(observed.source, source_before)
     assert np.array_equal(observed.target, target_before)

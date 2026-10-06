@@ -5,7 +5,9 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
+from decimal import Context, Decimal
 from fractions import Fraction
+from functools import lru_cache
 from numbers import Integral
 from types import MappingProxyType
 from typing import Any, Self, cast
@@ -33,7 +35,8 @@ __all__ = ["BinnedNetTEAdapter", "conditional_mutual_information"]
 
 _NAME = "equal_width_binned_nette_v1"
 _PREPROCESSING_IDENTITY = (
-    "no_hidden_transform|observed_exact_rational_equal_width_edges_reused|common_support_max_lag"
+    "no_hidden_transform|observed_exact_rational_equal_width_edges_reused"
+    "|exact_count_decimal_information|common_support_max_lag"
 )
 _OK_DIAGNOSTICS = ("SELCAL_BINNED_NETTE_OK",)
 _ROUNDING_TOLERANCE = 1e-15
@@ -58,6 +61,20 @@ def _validated_code_vector(values: object, *, name: str) -> IntegerCodeVector:
     if array.dtype.kind not in {"i", "u"}:
         raise ValueError(f"{name} must have a signed or unsigned integer dtype")
     return cast(IntegerCodeVector, array)
+
+
+_DECIMAL = Context(prec=50)
+
+
+@lru_cache(maxsize=65536)
+def _reduced_log(numerator: int, denominator: int) -> Decimal:
+    return _DECIMAL.ln(_DECIMAL.divide(Decimal(numerator), Decimal(denominator)))
+
+
+def _log_ratio(numerator: int, denominator: int) -> Decimal:
+    """ln(numerator / denominator) to 50 digits, independent of the platform's libm."""
+    divisor = math.gcd(numerator, denominator)
+    return _reduced_log(numerator // divisor, denominator // divisor)
 
 
 def conditional_mutual_information(
@@ -101,14 +118,24 @@ def conditional_mutual_information(
     representative_xz = xz_inverse[representatives]
     representative_yz = yz_inverse[representatives]
     representative_z = z_inverse[representatives]
-    joint_float = joint_counts.astype(np.float64)
-    sample_n = float(x_array.size)
-    probabilities = joint_float / sample_n
-    ratios = (joint_float * z_counts[representative_z].astype(np.float64)) / (
-        xz_counts[representative_xz].astype(np.float64)
-        * yz_counts[representative_yz].astype(np.float64)
+    # Every quantity is an exact integer count; the sum of count * log(ratio) is evaluated in
+    # 50-digit decimal arithmetic and rounded once. np.log and np.sum gave last-bit differences
+    # between NumPy versions and CPUs (hosted CI, 2026-10-06), so the statistic is now the same
+    # on every platform, as lagged Pearson is with correctly rounded sums.
+    weighted = sum(
+        (
+            Decimal(int(joint)) * _log_ratio(int(joint) * int(z_count), int(xz) * int(yz))
+            for joint, z_count, xz, yz in zip(
+                joint_counts,
+                z_counts[representative_z],
+                xz_counts[representative_xz],
+                yz_counts[representative_yz],
+                strict=True,
+            )
+        ),
+        Decimal(0),
     )
-    information = float(np.sum(probabilities * np.log(ratios), dtype=np.float64))
+    information = float(_DECIMAL.divide(weighted, Decimal(int(x_array.size))))
 
     if not math.isfinite(information):
         raise AnalyticFailure("conditional mutual information is not finite")

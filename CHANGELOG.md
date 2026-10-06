@@ -45,7 +45,9 @@ number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
   NetTE example changes from p = 0.4 to the correct 0.9 (six exact ln(2)/4 ties).
 - Binned NetTE computes equal-width bin edges in exact rational arithmetic. np.linspace rounded them
   differently in NumPy 1.26 and 2.x, so data lying on an edge could change bins and results between
-  NumPy versions. The preprocessing identity is renamed accordingly.
+  NumPy versions. Its information is computed from the exact integer counts with 50-digit decimal
+  logarithms and rounded once, so NetTE values are the same on every platform (np.log and np.sum
+  differed in the last bit between NumPy versions and CPUs). The preprocessing identity is renamed.
 - Outputs refuse a name occupied by a dangling symbolic link (Windows exclusive creation followed it).
 - The local interface holds a lock on its workspace: a second helper on the same workspace is refused
   instead of marking the first helper's running jobs as interrupted.
