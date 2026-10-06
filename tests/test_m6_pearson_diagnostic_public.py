@@ -177,7 +177,7 @@ def test_cli_writes_report_and_never_overwrites(tmp_path):
         str(output),
     ]
     run = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True,
-        errors="replace", timeout=15)
+        errors="replace", timeout=60)
     assert run.returncode == 0, run.stderr
     before = output.read_bytes()
     report = json.loads(before)
@@ -185,7 +185,7 @@ def test_cli_writes_report_and_never_overwrites(tmp_path):
     assert len(report["cases"]) == 3
     assert all(c["comparison_status"] == "AGREEMENT" for c in report["cases"])
     again = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True,
-        errors="replace", timeout=15)
+        errors="replace", timeout=60)
     assert again.returncode != 0
     assert output.read_bytes() == before
 

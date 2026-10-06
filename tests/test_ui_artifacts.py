@@ -744,7 +744,8 @@ context.saved=saved;vm.runInContext(fs.readFileSync(SCRIPT,'utf8'),context);
         .replace("INDEX", json.dumps(str(web / "index.html")))
     )
     result = subprocess.run([node, "-e", harness], capture_output=True, text=True,
-        errors="replace", timeout=10)
+        # Node can take more than 10 s to start on hosted Windows runners (CI, 2026-10-06).
+        errors="replace", timeout=60)
     assert result.returncode == 0, result.stderr
 
 

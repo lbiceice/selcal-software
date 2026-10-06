@@ -122,7 +122,7 @@ vm.runInContext(fs.readFileSync(SCRIPT,'utf8'),context);
     )
     harness = harness.replace("SCRIPT", json.dumps(str(root / "src/selcal/web/app.js")))
     result = subprocess.run([node, "-e", harness], capture_output=True, text=True,
-        errors="replace", timeout=10)
+        errors="replace", timeout=60)  # Node starts slowly on hosted Windows runners
     assert result.returncode == 0, result.stderr
 
 
@@ -231,7 +231,7 @@ test().catch(error=>{console.error(error);process.exitCode=1});
         "SCRIPT", json.dumps(str(script))
     )
     result = subprocess.run([node, "-e", harness], capture_output=True, text=True,
-        errors="replace", timeout=10)
+        errors="replace", timeout=60)  # Node starts slowly on hosted Windows runners
     assert result.returncode == 0, result.stderr
 
 
@@ -392,7 +392,7 @@ vm.runInContext(fs.readFileSync(SCRIPT,"utf8"),context);
     }.items():
         harness = harness.replace(key, json.dumps(value))
     result = subprocess.run([node, "-e", harness], capture_output=True, text=True,
-        errors="replace", timeout=10)
+        errors="replace", timeout=60)  # Node starts slowly on hosted Windows runners
     assert result.returncode == 0, result.stderr
 
 
