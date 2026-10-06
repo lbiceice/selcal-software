@@ -14,7 +14,7 @@ from typing import ClassVar, NoReturn
 import numpy as np
 
 from selcal.contracts import SeriesPair
-from selcal.contracts_v2 import ResourceLimitError, V2IntegrityError
+from selcal.contracts_v2 import ResourceLimitError, V2IntegrityError, reaches_observed_decision
 from selcal.resolution_v2 import (
     PlanResolutionV2,
     _require_resolver_owned_resolution_v2,
@@ -160,7 +160,7 @@ def _circular_exceedances(
     for shift in range(min_shift, observed_length - min_shift + 1):
         transformed = _circular_pair(pair, shift)
         state_decision = _decision_statistic(bound_statistic, transformed, resolution)
-        if state_decision >= observed_decision_statistic:
+        if reaches_observed_decision(state_decision, observed_decision_statistic):
             exceedance_count += 1
     return exceedance_count
 
@@ -181,7 +181,7 @@ def _block_exceedances(
             continue
         transformed = _block_pair(pair, block_order, block_length)
         state_decision = _decision_statistic(bound_statistic, transformed, resolution)
-        if state_decision >= observed_decision_statistic:
+        if reaches_observed_decision(state_decision, observed_decision_statistic):
             exceedance_count += 1
     return exceedance_count
 

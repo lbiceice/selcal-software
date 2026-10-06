@@ -25,7 +25,7 @@ from selcal.resolution_v2 import resolve_plan_v2
 # v1 (before ALG-01) and v2 (R11 two-pass with BLAS sums) stay unchanged as history;
 # test_reference_change_is_bounded binds what each numeric-method change may alter.
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-REFERENCES = FIXTURES / "recovery_kernel_v3"
+REFERENCES = FIXTURES / "recovery_kernel_v4"
 CASES = (
     "sampled_pearson",
     "exact_pearson",
@@ -433,3 +433,49 @@ def test_callback_drift_is_rejected_before_next_payload(target, monkeypatch):
     with pytest.raises(V2IntegrityError):
         observed(pair, resolution, corrupt)
     assert seen == [0]
+
+
+IDENTITY_NETTE_V1 = "no_hidden_transform|observed_equal_width_edges_reused|common_support_max_lag"
+IDENTITY_NETTE_V2 = (
+    "no_hidden_transform|observed_exact_rational_equal_width_edges_reused|common_support_max_lag"
+)
+
+
+@pytest.mark.parametrize("name", ["sampled_pearson", "exact_pearson", "binned", "pre_observed_ne"])
+def test_r16_reference_change_is_exactly_the_tie_rule_and_the_nette_identity(name):
+    """R16 (2026-10-06): exceedance ties within 64 scaled ULP count; NetTE edges are exact.
+
+    Every value stays bit-identical. The binned case changes only its exceedance count and p,
+    by exactly the ties the new rule counts (a ln2/4 tie lost to rounding), and its identity.
+    """
+    from selcal.contracts_v2 import reaches_observed_decision
+
+    v3, v4 = FIXTURES / "recovery_kernel_v3", FIXTURES / "recovery_kernel_v4"
+    old_manifest = json.loads((v3 / "manifest.json").read_text("utf-8"))
+    new_manifest = json.loads((v4 / "manifest.json").read_text("utf-8"))
+    assert old_manifest["cases"][name]["request"] == new_manifest["cases"][name]["request"]
+    old_bytes = (v3 / old_manifest["cases"][name]["file"]).read_bytes()
+    new_bytes = (v4 / new_manifest["cases"][name]["file"]).read_bytes()
+    if name != "binned":
+        assert old_bytes == new_bytes
+        return
+    old, new = json.loads(old_bytes), json.loads(new_bytes)
+    old_rows, new_rows = list(_floats_and_fields(old)), list(_floats_and_fields(new))
+    assert [path for path, _ in old_rows] == [path for path, _ in new_rows]
+    for (path, before), (_, after) in zip(old_rows, new_rows, strict=True):
+        if path.endswith("/preprocessing_identity"):
+            assert (before, after) == (IDENTITY_NETTE_V1, IDENTITY_NETTE_V2)
+        elif path in ("/exceedance_count", "/p_value"):
+            continue
+        else:
+            assert before == after, path
+    observed = float.fromhex(old["observed_selection"]["decision_statistic"]["$float64"])
+    decisions = [
+        float.fromhex(row["selection"]["decision_statistic"]["$float64"])
+        for row in old["replicates"]
+    ]
+    assert old["exceedance_count"] == sum(value >= observed for value in decisions)
+    assert new["exceedance_count"] == sum(
+        reaches_observed_decision(value, observed) for value in decisions
+    )
+    assert (old["exceedance_count"], new["exceedance_count"]) == (2, 3)

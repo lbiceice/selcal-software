@@ -1,0 +1,64 @@
+{
+  "schema": "selcal.recovery-kernel-fixture-environment.v1",
+  "purpose": "reference full-byte reproduction verified environment",
+  "not_original_generation_blas_attestation": true,
+  "environment": {
+    "python": "3.11.12 (main, May 17 2025, 13:40:36) [Clang 20.1.4 ]",
+    "numpy": "2.4.6",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "machine": "arm64",
+    "byteorder": "little",
+    "blas": {
+      "name": "accelerate",
+      "found": true,
+      "version": "unknown",
+      "detection method": "system",
+      "openblas configuration": "unknown"
+    }
+  },
+  "source_identity": [
+    {
+      "path": "src/selcal/calibration_v2.py",
+      "sha256": "067d2b6ba23feed9a2562ae22394f1a48872a7254d86fa0d22d12d129b090bf0"
+    },
+    {
+      "path": "src/selcal/contracts_v2.py",
+      "sha256": "77d9fdbcb3339088fcf186311398cb2d4f0edb1d45392deef3d6e77334bd669a"
+    },
+    {
+      "path": "src/selcal/result_wire.py",
+      "sha256": "ae3ef84e27d71a78890e1a8e966dc519c03b3e65d11e53c232b5dcc4265bffff"
+    },
+    {
+      "path": "src/selcal/statistics/binned_nette.py",
+      "sha256": "c046ed07756de965049ae760b93d764ffcb856909e4828404559b59fd8c64ce0"
+    },
+    {
+      "path": "src/selcal/statistics/lagged_pearson.py",
+      "sha256": "b4b40495c10b40d41d921da459cafede6c523725ee11ace9bae5ac4973e3218e"
+    }
+  ],
+  "cases": [
+    {
+      "case": "sampled_pearson",
+      "sha256": "decdfe327b6b00d3edcd4f9575d05ccb177427c6c55e25381cb4ca8398e22088",
+      "full_byte_reproduction": true
+    },
+    {
+      "case": "exact_pearson",
+      "sha256": "7e17b1e184e3e23c598e1887421f9327a14c045f3455bea21f17f3e4b51aa48c",
+      "full_byte_reproduction": true
+    },
+    {
+      "case": "binned",
+      "sha256": "b5cde7fe4240ee547f3c5f20dafe8dd5633af0b9dfd1779fb49a98530c1e115e",
+      "full_byte_reproduction": true
+    },
+    {
+      "case": "pre_observed_ne",
+      "sha256": "ba1c44bf48c316eb2fb95748998e594be283745754ddb92f13458fb6e2bfd355",
+      "full_byte_reproduction": true
+    }
+  ],
+  "scientific_validation": false
+}

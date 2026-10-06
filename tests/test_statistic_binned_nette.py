@@ -436,7 +436,7 @@ def test_bound_evaluation_uses_exact_indexing_support_rules_and_identities() -> 
         f"selcal.equal_width_binned_nette.v1|numpy={np.__version__}|bins=3|units=nats"
     }
     assert {result.preprocessing_identity for result in upper} == {
-        "no_hidden_transform|observed_equal_width_edges_reused|common_support_max_lag"
+        "no_hidden_transform|observed_exact_rational_equal_width_edges_reused|common_support_max_lag"
     }
     assert np.array_equal(observed.source, source_before)
     assert np.array_equal(observed.target, target_before)
@@ -723,3 +723,17 @@ def test_statistic_source_is_clean_room_and_provenance_row_is_exact() -> None:
         .splitlines()
     )
     assert provenance_rows.count(PROVENANCE_ROW) == 1
+
+
+def test_equal_width_edges_are_exact_and_independent_of_numpy_rounding() -> None:
+    # np.linspace gave 1.8199999999999998 here, and its last bit differed between NumPy 1.26 and
+    # 2.x; integer data on an edge then moved between bins (hosted CI, 2026-10-06).
+    from selcal.statistics.binned_nette import _observed_edges
+
+    edges, diagnostics = _observed_edges(
+        np.array([0.7000000000000001, 3.5], dtype=np.float64), bins=5, role="source"
+    )
+    assert diagnostics == ()
+    assert edges.tolist() == [0.7000000000000001, 1.26, 1.82, 2.38, 2.94, 3.5]
+    integer_edges, _ = _observed_edges(np.arange(7, dtype=np.float64), bins=3, role="target")
+    assert integer_edges.tolist() == [0.0, 2.0, 4.0, 6.0]

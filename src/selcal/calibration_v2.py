@@ -36,6 +36,7 @@ from selcal.contracts_v2 import (
     ResourceLimitError,
     RunFailureStage,
     V2IntegrityError,
+    reaches_observed_decision,
 )
 from selcal.nulls.executable_base import (
     BoundNullModel,
@@ -2902,9 +2903,11 @@ def _freeze_public_calibrator(
     prepare_calibration = _prepare_calibration
     sum_values = sum
     cast_value = cast
+    reaches = reaches_observed_decision
     verify_behavior_globals = _freeze_behavior_global_guard(
         globals(),
         (
+            reaches,
             require_budget,
             execute_replicates,
             terminal_verifier,
@@ -2957,7 +2960,7 @@ def _freeze_public_calibrator(
         exceedance_count = sum_values(
             outcome.status is replicate_status_type.COMPLETE
             and outcome.selection is not None
-            and outcome.selection.decision_statistic >= observed_decision
+            and reaches(outcome.selection.decision_statistic, observed_decision)
             for outcome in outcomes
         )
         failure_count = sum_values(

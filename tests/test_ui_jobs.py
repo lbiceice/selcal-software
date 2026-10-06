@@ -195,8 +195,19 @@ def test_malformed_saved_member_gives_bounded_refusal(physical_tmp, member, fiel
     value = json.loads(target.read_text(encoding="utf-8"))
     value[field] = []
     target.write_text(json.dumps(value), encoding="utf-8")
-    with pytest.raises(app.UIError, match="invalid"):
-        app.JobManager(manager.workspace)
+    saved = target.read_bytes()
+    # A malformed job is never operated on: it is not loaded, every request for it is refused,
+    # and its files stay as they were. Other jobs remain available (AUD-02, 2026-10-05).
+    reopened = app.JobManager(manager.workspace)
+    try:
+        assert reopened.unloadable_jobs == [job["id"]]
+        with pytest.raises(app.UIError):
+            reopened.get(job["id"])
+        with pytest.raises(app.UIError):
+            reopened.start(job["id"], "validate")
+    finally:
+        reopened.close()
+    assert target.read_bytes() == saved
 
 
 def test_fifo_input_is_refused_without_blocking(physical_tmp):
@@ -228,3 +239,43 @@ def test_budget_keeps_python_integer_envelope_without_javascript_rounding(physic
         assert manager.admit(request)["max_bytes"] == request["max_bytes"]
     finally:
         manager.close()
+
+
+def test_a_second_helper_cannot_open_a_workspace_in_use(physical_tmp):
+    # A second helper used to mark the first one's running jobs as interrupted on start-up.
+    app = jobs_module()
+    first = app.JobManager(physical_tmp / "work")
+    try:
+        with pytest.raises(app.UIError, match="already open in another SelCal helper"):
+            app.JobManager(physical_tmp / "work")
+    finally:
+        first.close()
+    reopened = app.JobManager(physical_tmp / "work")  # released by close()
+    reopened.close()
+    reopened.close()  # closing twice is harmless
+
+
+def test_an_interrupted_admission_does_not_lock_healthy_jobs_out(physical_tmp):
+    # A job folder holding only request.json (admission stopped before metadata) used to stop the
+    # whole workspace from opening (independent audit AUD-02, 2026-10-05).
+    app = jobs_module()
+    inp, request = admission(physical_tmp)
+    manager = app.JobManager(physical_tmp / "work")
+    try:
+        healthy = manager.admit(request)
+        manager.upload(healthy["id"], io.BytesIO(inp.read_bytes()), inp.stat().st_size)
+    finally:
+        manager.close()
+    orphan = physical_tmp / "work" / "jobs" / ("f" * 32)
+    orphan.mkdir()
+    (orphan / "request.json").write_text("{}", encoding="utf-8")
+    before = {p.name: p.read_bytes() for p in orphan.iterdir()}
+    reopened = app.JobManager(physical_tmp / "work")
+    try:
+        assert reopened.unloadable_jobs == ["f" * 32]
+        assert [job["id"] for job in reopened.list_jobs()] == [healthy["id"]]
+        with pytest.raises(app.UIError):
+            reopened.get("f" * 32)
+    finally:
+        reopened.close()
+    assert {p.name: p.read_bytes() for p in orphan.iterdir()} == before  # left untouched

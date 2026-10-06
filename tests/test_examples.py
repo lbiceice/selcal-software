@@ -124,9 +124,11 @@ def test_binned_nette_block_shuffle_example_runs_with_exact_output() -> None:
     assert first.stdout == second.stdout
     assert json.loads(first.stdout) == {
         "decision_statistic": 0.17328679514,
-        "exceedance_count": 3,
+        # Six surrogates equal the observed ln(2)/4 in exact arithmetic and two exceed it; before
+        # R16 (2026-10-06) rounding split those ties by platform (E = 3 here, 5 with NumPy 1.26).
+        "exceedance_count": 8,
         "failure_count": 0,
-        "p_value": 0.4,
+        "p_value": 0.9,
         "planned_replicates": 9,
         "reject_null": False,
         "replicate_count": 9,

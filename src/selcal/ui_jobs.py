@@ -19,12 +19,14 @@ import sys
 import threading
 import uuid
 import zipfile
+from contextlib import ExitStack
 from ctypes import wintypes
 from datetime import UTC, datetime
 from io import BufferedIOBase, BytesIO
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from selcal.checkpoint_lock import CheckpointLockError, checkpoint_writer_lock
 from selcal.checkpoint_store import open_checkpoint
 from selcal.contracts_v2 import ResourceLimitError
 from selcal.input_resources import INPUT_LIMITS_V1, read_regular_file_snapshot
@@ -364,6 +366,7 @@ class JobManager:
         self._cancelled = False
         self._closed = False
         self._observations: dict[str, dict[str, Any]] = {}
+        self.unloadable_jobs: list[str] = []
         if not self.workspace.exists() and not self.workspace.is_symlink():
             _real_directory(self.workspace.parent)
             self.workspace.mkdir(mode=0o700)
@@ -374,13 +377,43 @@ class JobManager:
             (self.workspace / "jobs").mkdir(mode=0o700)
         if strict_json(_read(marker, 1024)) != _MARKER:
             raise UIError("This directory is not an owned SelCal UI workspace.")
+        # One helper per workspace, held until close(): a second helper would otherwise mark
+        # the first one's running jobs as interrupted and overwrite their observations.
+        self._workspace_lock = ExitStack()
+        try:
+            self._workspace_lock.enter_context(checkpoint_writer_lock(self.workspace))
+        except CheckpointLockError as error:
+            if error.code == "CHECKPOINT_BUSY":
+                raise UIError(
+                    "This workspace is already open in another SelCal helper. Use that helper, "
+                    "or stop it with Ctrl-C in its terminal before opening the workspace again."
+                ) from error
+            raise UIError(
+                "The workspace lock file is unsafe; keep the directory for inspection."
+            ) from error
+        try:
+            self._load_jobs()
+        except BaseException:
+            self._workspace_lock.close()
+            raise
+
+    def _load_jobs(self) -> None:
         _real_directory(self.workspace / "jobs")
         for path in sorted((self.workspace / "jobs").iterdir()):
             if not _ID.fullmatch(path.name):
                 raise UIError("Unexpected workspace member; keep the directory for inspection.")
-            self._metadata(path.name)
-            observation = strict_json(_read(path / "observation.json", STDOUT_LIMIT + 65536))
-            self._check_observation(observation)
+            try:
+                self._metadata(path.name)
+                observation = strict_json(
+                    _read(path / "observation.json", STDOUT_LIMIT + 65536)
+                )
+                self._check_observation(observation)
+            except (UIError, OSError):
+                # One unreadable job (for example an admission interrupted before its metadata
+                # was written) must not lock every healthy job out of the workspace. It is left
+                # untouched for inspection and is not offered for any operation.
+                self.unloadable_jobs.append(path.name)
+                continue
             if observation["state"] == "running":
                 observation.update(
                     state="interrupted",
@@ -944,6 +977,9 @@ class JobManager:
                     argv,
                     executable=executable,
                     env=environment,
+                    # "-m selcal" puts the working directory first on sys.path; the fresh
+                    # operation directory holds no module that could shadow the package.
+                    cwd=operation,
                     shell=False,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.PIPE,
@@ -1161,3 +1197,5 @@ class JobManager:
                 # Shutdown must not depend on the readability of a saved observation.
                 # cancel has already reaped the process before reading its final display.
                 pass
+        # Release the workspace only after the child is reaped and observations are saved.
+        self._workspace_lock.close()

@@ -41,6 +41,34 @@ from selcal.parameters import freeze_exact_json_mapping
 _V2_RESOLUTION_SEAL = object()
 
 
+EXCEEDANCE_TIE_SCALED_ULPS = 64
+
+
+def _freeze_reaches_observed_decision() -> Callable[[float, float], bool]:
+    """Bind the tie rule's helpers now, so trusted verifiers read no module globals later."""
+    units = EXCEEDANCE_TIE_SCALED_ULPS
+    unit_in_last_place = math.ulp
+    larger = max
+    magnitude = abs
+
+    def reaches_observed_decision(decision: float, observed: float, /) -> bool:
+        """True when a surrogate's decision statistic reaches the observed one.
+
+        Values within EXCEEDANCE_TIE_SCALED_ULPS units in the last place of max(|observed|, 1)
+        count as equal, and a tie counts as reaching. Values that are equal in exact arithmetic
+        can differ in their last bits after rounding (data with many tied windows, or rescaled
+        data); a strict comparison then turned exact ties into non-exceedances and could put p
+        below its L/n floor. The same scaled-ULP measure bounds statistic differences in
+        cross-platform decision replay.
+        """
+        return decision >= observed - units * unit_in_last_place(larger(magnitude(observed), 1.0))
+
+    return reaches_observed_decision
+
+
+reaches_observed_decision = _freeze_reaches_observed_decision()
+
+
 class SelCalV2Error(RuntimeError):
     """Base class for explicitly typed SelCal v2 failures."""
 
@@ -923,7 +951,7 @@ class CalibrationResult:
         observed_decision = self.observed_selection.decision_statistic
         derived_exceedances = sum(
             outcome.selection is not None
-            and outcome.selection.decision_statistic >= observed_decision
+            and reaches_observed_decision(outcome.selection.decision_statistic, observed_decision)
             for outcome in self.replicates
         )
         if self.exceedance_count != derived_exceedances:
@@ -1009,7 +1037,7 @@ class CalibrationResult:
         derived_exceedances = sum(
             outcome.status is ReplicateStatus.COMPLETE
             and outcome.selection is not None
-            and outcome.selection.decision_statistic >= observed_decision
+            and reaches_observed_decision(outcome.selection.decision_statistic, observed_decision)
             for outcome in self.replicates
         )
         if self.exceedance_count != derived_exceedances:
@@ -1410,6 +1438,7 @@ def _freeze_result_verifier_capsule_v2(
     construct_counts = counts_type.__new__
 
     tuple_getitem: Callable[[tuple[object, ...], int], Any] = tuple.__getitem__
+    reaches = reaches_observed_decision
 
     def verify_calibration_result(result: object, resolution: object, /) -> None:
         """Verify representation, arithmetic and sealed ownership, not input provenance.
@@ -1478,7 +1507,7 @@ def _freeze_result_verifier_capsule_v2(
                             "replicate result has no observed decision"
                         )
                     decision: Any = tuple_getitem(verified, 1)
-                    derived_exceedances += decision >= observed_decision
+                    derived_exceedances += reaches(decision, observed_decision)
         derived = construct_counts(
             counts_type,
             derived_exceedances,

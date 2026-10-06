@@ -32,6 +32,7 @@ from selcal.contracts import (
     Validity,
 )
 from selcal.contracts_v2 import (
+    EXCEEDANCE_TIE_SCALED_ULPS,
     BlockShuffleStateV2,
     CalibrationResult,
     CircularShiftStateV2,
@@ -1423,7 +1424,8 @@ class _Row18AccumulationComparisonOperand:
 
     def __ge__(self, other: object) -> _Row18AccumulationAdditionSentinel:
         assert type(other) is float
-        assert other == 3.0
+        # The observed decision 3.0 less the shared tie allowance (contracts_v2 tie rule).
+        assert other == 3.0 - EXCEEDANCE_TIE_SCALED_ULPS * math.ulp(3.0)
         self.comparison_calls += 1
         return _Row18AccumulationAdditionSentinel(self)
 

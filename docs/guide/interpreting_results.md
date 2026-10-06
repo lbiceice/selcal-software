@@ -27,7 +27,7 @@ Two common shortcuts answer a different question and give p-values that are too 
 | `selected_candidate` | The lag with the strongest dependence in the observed data. Ties are listed in `tied_candidates`. The test is about the whole scan, not a confidence statement that this particular lag is the true one. |
 | `decision_statistic` | The observed maximum (for Pearson with `max_absolute`, the largest absolute correlation over the searched lags). |
 | `exceedance_count` (E), `planned_replicates` (B) | E of the B surrogates reached or exceeded the observed maximum. |
-| `p_value` | `(1 + E) / (B + 1)`: the share of null states, counting the observed alignment itself, whose maximum reaches the observed one. |
+| `p_value` | `(1 + E) / (B + 1)`: the share of null states, counting the observed alignment itself, whose maximum reaches the observed one. A surrogate value within 64 units in the last place of max(\|observed\|, 1) counts as reaching it, so values that are equal in exact arithmetic but rounded differently are treated as the ties they are. |
 | `reject_null` | `p_value <= alpha`. |
 | `attainability` (from `validate`) | `null_state_p_floor`: the smallest exact p the plan can reach (L/n for the full circular Pearson scan). `monte_carlo_p_floor`: `1/(B+1)`. `monte_carlo_power_cap`: the most often a sampled plan can reject, even for a very strong signal. |
 
@@ -82,9 +82,11 @@ Example: the bundled 100-sample series with lags 1–10 gives `REFUSE_NULL_STATE
 | Exit | Outcome | Meaning |
 |---|---|---|
 | 0 | complete | The analysis finished; read the numbers above. |
+| 1 | internal error | An unexpected error inside SelCal (a defect, not a data or plan problem). The traceback is printed on purpose; please report it with the command and the files. |
 | 2 | refused | Invalid or unattainable request (see the refusal table); nothing was computed. |
 | 4 | operational or integrity failure | A file, environment or record check failed; keep the files and the message. |
 | 7 | NOT_EVALUABLE | The analysis ran but could not be evaluated, for example a correlation was undefined because a series is constant over the compared window, or its values overflow. The `low`/`high` bounds are the p-values the failed surrogates could reach, not a confidence interval. |
+| 130 | interrupted | Ctrl-C or a stop request was observed; no result is claimed. Resume from a checkpoint if one was requested. |
 
 ## Checking a saved result
 

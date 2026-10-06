@@ -34,6 +34,28 @@ number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
   requirements, writes the lock export without a path header, and reports environment failures
   once, marking dependent steps as blocked.
 
+### Fixed before release (2026-10-06)
+
+- Exceedance counting: a surrogate whose decision statistic is within 64 units in the last place of
+  max(|observed|, 1) of the observed one now counts as reaching it. Values that are equal in exact
+  arithmetic could differ in their last bits, so ties were lost: on degenerate data a p-value fell
+  below its L/n floor and a positive rescaling of the data changed the decision. One frozen rule is
+  shared by the calculation, the result verifier and the exact oracle. Ordinary continuous data are
+  unaffected (1,200 study-like runs and both re-analyses gave identical results); the bundled binned
+  NetTE example changes from p = 0.4 to the correct 0.9 (six exact ln(2)/4 ties).
+- Binned NetTE computes equal-width bin edges in exact rational arithmetic. np.linspace rounded them
+  differently in NumPy 1.26 and 2.x, so data lying on an edge could change bins and results between
+  NumPy versions. The preprocessing identity is renamed accordingly.
+- Outputs refuse a name occupied by a dangling symbolic link (Windows exclusive creation followed it).
+- The local interface holds a lock on its workspace: a second helper on the same workspace is refused
+  instead of marking the first helper's running jobs as interrupted.
+- A job folder that cannot be read (for example after an interrupted job creation) is left untouched
+  and reported; it no longer stops the workspace and its healthy jobs from opening.
+- Interface child processes run in their own operation folder, so a module named selcal in the folder
+  where the helper was started cannot replace the installed package.
+- `scripts/verify_installed_identity.py` checks an installation against its RECORD hashes and,
+  optionally, against the wheel it should come from.
+
 ### Documentation and metadata
 
 - The README is a short user page; the complete user reference and the development and platform

@@ -271,6 +271,14 @@ def serve(workspace: str | Path, *, port: int = 0, no_browser: bool = False) -> 
             "all work is retained. Closing a browser tab does not stop it.\n",
         )
         sys.stdout.flush()
+        if server.jobs.unloadable_jobs:
+            sys.stderr.write(
+                f"{len(server.jobs.unloadable_jobs)} saved job folder(s) could not be read and "
+                "were left untouched (for example an interrupted job creation): "
+                + ", ".join(server.jobs.unloadable_jobs)
+                + ". Other jobs are available.\n"
+            )
+            sys.stderr.flush()
         if not no_browser:
             webbrowser.open(url)
         try:

@@ -50,17 +50,17 @@ macOS / Linux:
 
 ```console
 git clone https://github.com/lbiceice/selcal-software.git
-cd selcal
+cd selcal-software
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
 ```
 
-Windows (PowerShell 5.1 or 7; put the folder at a short path such as `C:\src\selcal`):
+Windows (PowerShell 5.1 or 7; put the folder at a short path such as `C:\src\selcal-software`):
 
 ```console
 git clone -c core.autocrlf=false https://github.com/lbiceice/selcal-software.git
-cd selcal
+cd selcal-software
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install .

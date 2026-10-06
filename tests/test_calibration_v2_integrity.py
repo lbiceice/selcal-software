@@ -741,6 +741,7 @@ def test_executor_and_verifier_share_one_frozen_random_capsule_identity() -> Non
             "expectation_type",
             "externals",
             "primitive_ops",
+            "reaches",
             "resolution_context",
             "result_prefix",
             "schemas",
@@ -749,6 +750,10 @@ def test_executor_and_verifier_share_one_frozen_random_capsule_identity() -> Non
             "verify_observed",
         }
     )
+    # The verifier counts exceedances with the one frozen tie rule shared with the kernel.
+    from selcal.contracts_v2 import reaches_observed_decision
+
+    assert verifier_nonlocals["reaches"] is reaches_observed_decision
     assert calibration_v2._execute_replicates.__defaults__ is None
     assert calibration_v2._execute_replicates.__kwdefaults__ is None
     assert executor_nonlocals["callable_value"] is callable

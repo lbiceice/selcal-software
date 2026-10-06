@@ -568,3 +568,32 @@ def test_all_existing_adapter_choices_dispatch_to_same_cli(physical_tmp, statist
         assert expected["exit_code"] == 0
     finally:
         manager.close()
+
+
+def test_child_ignores_a_shadowing_module_in_the_helper_working_directory(
+    physical_tmp, monkeypatch
+):
+    # "python -m selcal" searches the working directory first unless isolated; a stray
+    # selcal.py where the user started the helper must not replace the installed package.
+    if sys.flags.isolated:
+        pytest.skip("an isolated helper already passes -I to its child")
+    shadow = physical_tmp / "start-here"
+    shadow.mkdir()
+    marker = physical_tmp / "shadow-was-imported"
+    (shadow / "selcal.py").write_text(
+        f"open({str(marker)!r}, 'w').close()\nraise SystemExit(99)\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(shadow)
+    app = jobs_module()
+    inp, request = admission(physical_tmp)
+    manager = app.JobManager(physical_tmp / "work")
+    try:
+        job = manager.admit(request)
+        manager.upload(job["id"], io.BytesIO(inp.read_bytes()), inp.stat().st_size)
+        manager.start(job["id"], "run")
+        finished = wait_job(manager, job["id"])
+    finally:
+        manager.close()
+    assert not marker.exists()
+    assert finished["state"] == "complete", finished.get("message")
+    assert finished["result"]["command"] == "run"

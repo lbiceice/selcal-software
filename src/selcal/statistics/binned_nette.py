@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
+from fractions import Fraction
 from numbers import Integral
 from types import MappingProxyType
 from typing import Any, Self, cast
@@ -32,7 +33,7 @@ __all__ = ["BinnedNetTEAdapter", "conditional_mutual_information"]
 
 _NAME = "equal_width_binned_nette_v1"
 _PREPROCESSING_IDENTITY = (
-    "no_hidden_transform|observed_equal_width_edges_reused|common_support_max_lag"
+    "no_hidden_transform|observed_exact_rational_equal_width_edges_reused|common_support_max_lag"
 )
 _OK_DIAGNOSTICS = ("SELCAL_BINNED_NETTE_OK",)
 _ROUNDING_TOLERANCE = 1e-15
@@ -181,17 +182,14 @@ def _observed_edges(
 ) -> tuple[NDArray[np.float64], tuple[str, ...]]:
     minimum = float(np.min(series))
     maximum = float(np.max(series))
-    with np.errstate(over="ignore", invalid="ignore"):
-        edges = np.linspace(minimum, maximum, bins + 1, dtype=np.float64)
-    if not np.isfinite(edges).all():
-        fractions = np.linspace(0.0, 1.0, bins + 1, dtype=np.float64)
-        with np.errstate(over="ignore", invalid="ignore"):
-            edges = np.asarray(
-                (1.0 - fractions) * minimum + fractions * maximum,
-                dtype=np.float64,
-            )
-        edges[0] = minimum
-        edges[-1] = maximum
+    # Each edge is minimum + (maximum - minimum) * k / bins in exact rational arithmetic, rounded
+    # once to float64. np.linspace rounds differently across NumPy versions (1.26 and 2.x
+    # differed in the last bit), and a data value lying exactly on an edge, as integer data
+    # often do, then fell into different bins and changed the result.
+    low, span = Fraction(minimum), Fraction(maximum) - Fraction(minimum)
+    edges = np.array(
+        [float(low + span * index / bins) for index in range(bins + 1)], dtype=np.float64
+    )
     frozen_edges = _frozen_float64_vector(edges)
     normalized_role = role.upper()
     if minimum == maximum:
