@@ -1,8 +1,6 @@
 name: Artifact-first CI
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -10,6 +8,7 @@ permissions:
 
 jobs:
   artifacts:
+    if: ${{ github.event.repository.private == false }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:

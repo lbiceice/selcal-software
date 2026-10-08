@@ -5,7 +5,7 @@
   "creators": [
     {
       "name": "Liang, Bingbing",
-      "affiliation": "School of AI Engineering, Guangzhou College of Technology and Business",
+      "affiliation": "School of AI Engineering, Guangzhou College of Technology and Business, Guangzhou, China; Faculty of Fine and Applied Arts, Khon Kaen University, Khon Kaen, Thailand",
       "orcid": "0009-0007-5344-0594"
     }
   ],
@@ -22,8 +22,20 @@
   ],
   "language": "eng",
   "related_identifiers": [
-    {"identifier": "10.7554/eLife.108198.1", "relation": "references", "scheme": "doi"},
-    {"identifier": "10.1371/journal.pbio.3002758", "relation": "references", "scheme": "doi"},
-    {"identifier": "10.5281/zenodo.20096919", "relation": "references", "scheme": "doi"}
+    {
+      "identifier": "10.7554/eLife.108198.1",
+      "relation": "references",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.1371/journal.pbio.3002758",
+      "relation": "references",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.20096919",
+      "relation": "references",
+      "scheme": "doi"
+    }
   ]
 }

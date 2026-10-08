@@ -18,6 +18,7 @@ from contextlib import closing, contextmanager
 
 import pytest
 from test_ui_http import request as http_request
+from test_ui_http import wait_while_progressing
 from test_ui_jobs import admission, jobs_module
 from test_ui_jobs import physical_tmp as _physical_tmp
 from test_ui_process import wait_job
@@ -89,7 +90,11 @@ def helper(workspace):
         line = lines.get(timeout=60)
         match = re.fullmatch(r"SelCal local UI: http://127\.0\.0\.1:(\d+)/#token=([^\s]+)\n", line)
         assert match is not None, line
-        yield SimpleNamespace(server_port=int(match[1]), token=match[2], pid=process.pid)
+        surface = SimpleNamespace(server_port=int(match[1]), token=match[2], pid=process.pid)
+        try:
+            yield surface
+        finally:
+            _cancel_running(surface)
     finally:
         if process.poll() is None:
             process.send_signal(signal.SIGINT) if sys.platform != "win32" else process.terminate()
@@ -100,24 +105,41 @@ def helper(workspace):
             process.communicate(timeout=5)
 
 
-def poll(server, job_id, predicate, *, timeout=180):
-    # Each committed replicate is slower on hosted Windows runners (2026-10-06); the wait is
-    # bounded, and every assertion about the reached state is unchanged.
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
+def _cancel_running(server):
+    """Stop this helper's running jobs through its own cancel before the helper is ended.
+
+    R17 item 5b: on Windows terminate() ends only the helper, so a child it was still running
+    kept state.sqlite open and the temporary directory could not be removed.
+    """
+    try:
+        status, _, body = http_request(server, "GET", "/api/jobs")
+        running = [job["id"] for job in json.loads(body)["jobs"] if job["state"] == "running"]
+    except (OSError, ValueError, KeyError):
+        return
+    for job_id in running:
+        http_request(server, "POST", f"/api/jobs/{job_id}/cancel", b"")
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            status, _, body = http_request(server, "GET", f"/api/jobs/{job_id}")
+            if status != 200 or json.loads(body)["state"] != "running":
+                break
+            time.sleep(0.05)
+
+
+def poll(server, job_id, predicate):
+    def fetch():
         status, _, body = http_request(server, "GET", f"/api/jobs/{job_id}")
         assert status == 200, body
-        job = json.loads(body)
-        if predicate(job):
-            return job
-        assert job["state"] == "running", job
-        time.sleep(0.005)
-    pytest.fail("The real helper did not reach the requested execution boundary")
+        return json.loads(body)
+
+    return wait_while_progressing(fetch, predicate, what="The real helper")
 
 
-# Enough replicates that a cancel issued at the first observed commit lands mid-run on any
-# machine; 199 finished before the cancel under load (NumPy 1.26 CI lane, 2026-10-04).
-REPLICATES = 999
+# Enough replicates that a cancel issued at the first observed commit usually lands mid-run;
+# 199 finished before the cancel under load (NumPy 1.26 CI lane, 2026-10-04), and a late cancel
+# retries in a fresh workspace below. 999 made every run take minutes where each committed
+# replicate is slow (R16 Windows return, R17 item 5).
+REPLICATES = 499
 
 
 @pytest.mark.parametrize("form", ["csv", "npz"])
@@ -307,7 +329,9 @@ def test_resume_child_terminal_and_lifecycle_boundaries(physical_tmp, monkeypatc
         child = manager._active[1]
         path = manager.workspace / "jobs" / job_id
         executable = jobs_module()._windows_image() if sys.platform == "win32" else sys.executable
-        flags = ["-I"] if sys.flags.isolated else ["-E"] if sys.flags.ignore_environment else []
+        # -I already leaves the working directory off sys.path; otherwise -P does (R17 item 2).
+        flags = (["-I"] if sys.flags.isolated
+                 else ["-E", "-P"] if sys.flags.ignore_environment else ["-P"])
         assert calls[0][:5 + len(flags)] == [
             executable, *flags, "-m", "selcal", "resume", str(path / "checkpoint")
         ]

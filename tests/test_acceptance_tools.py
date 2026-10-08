@@ -8,20 +8,24 @@ and input identities when a step times out or fails. Workspaces here come from r
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from test_saved_downloads_offline import checker as _saved_checker
 from test_ui_artifacts import generated
 from test_ui_jobs import physical_tmp as _physical_tmp
 from test_ui_process import wait_job
 
 physical_tmp = _physical_tmp
+checker = _saved_checker
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples" / "workflow"
 CHECKER = ROOT / "scripts" / "check_saved_downloads.py"
@@ -70,8 +74,11 @@ def built(tmp_path_factory):
 
     base = tmp_path_factory.mktemp("acceptance").resolve()
     manager = JobManager(base / "workspace")
-    job_id = _job(manager, reports=2)
-    manager.close()
+    try:
+        job_id = _job(manager, reports=2)
+    finally:
+        # R17 item 5: release the workspace and any child even when building the job fails.
+        manager.close()
     expect = base / "expect.json"
     case = dict(
         CASE, raw_input_sha256=hashlib.sha256((EXAMPLE / "series.csv").read_bytes()).hexdigest()
@@ -111,7 +118,14 @@ def _check(tmp: Path, workspace: Path, saved: Path, *extra: str) -> tuple[int, d
         encoding="utf-8",
         timeout=300,
     )
-    return done.returncode, json.loads((out / "receipt.json").read_text(encoding="utf-8"))
+    receipt = json.loads((out / "receipt.json").read_text(encoding="utf-8"))
+    # This also runs for the live-source refusal under a Chinese workspace path.
+    assert done.stdout.isascii()
+    summary = json.loads(done.stdout)
+    assert (summary["status"], summary["first_error"]) == (
+        receipt["status"], receipt["first_error"]
+    )
+    return done.returncode, receipt
 
 
 def _tree(folder: Path) -> dict:
@@ -129,6 +143,15 @@ def test_current_downloads_pass_every_separate_check_and_inputs_stay_unchanged(b
     )
     assert code == 0 and receipt["status"] == "PASS", receipt
     assert _tree(workspace) == before and receipt["inputs_unchanged"] is True
+    assert receipt["source_access"] == "OFFLINE_AVAILABLE"
+    assert receipt["content_checks"] == "PASS"
+    assert receipt["snapshot_cleanup"]["status"] == "PASS"
+    assert receipt["snapshot_cleanup"]["manager_close"] == "PASS"
+    assert not Path(receipt["snapshot_cleanup"]["path"]).exists()
+    assert receipt["input_checks"] == {
+        "workspace": {"baseline": "COMPLETE", "status": "PASS"},
+        "saved": {"baseline": "COMPLETE", "status": "PASS"},
+    }
     rows = {row["kind"]: row for row in receipt["files"]}
     assert all(
         row["file_equality"] == "PASS"
@@ -141,6 +164,84 @@ def test_current_downloads_pass_every_separate_check_and_inputs_stay_unchanged(b
     assert rows["bundle"]["export_content"] == "PASS"
     assert rows["report"]["html_content"] == "PASS"
     assert receipt["browser_save_observed"] == "NOT_OBSERVED_BY_THIS_TOOL"
+
+
+@pytest.mark.parametrize("workspace_name", ["workspace", "运行中 工作区"])
+def test_live_source_is_refused_by_cli_without_claiming_inputs_unchanged(
+    physical_tmp, workspace_name
+):
+    from selcal.ui_jobs import JobManager
+
+    workspace, saved = physical_tmp / workspace_name, physical_tmp / "saved"
+    saved.mkdir()
+    (saved / "unknown.bin").write_bytes(b"not a SelCal artifact")
+    manager = JobManager(workspace)
+    marker = workspace / "writer.lock"
+    identity = marker.stat()
+    try:
+        code, receipt = _check(physical_tmp, workspace, saved)
+        assert code == 1 and receipt["status"] == "FAIL", receipt
+        assert receipt["failure_phase"] == "source_offline_check"
+        assert receipt["failure_path"] == str(marker)
+        assert "Stop its UI helper normally" in receipt["first_error"]
+        assert receipt["content_checks"] == "NOT_CHECKED" and not receipt["files"]
+        assert receipt["inputs_unchanged"] is None
+        assert all(
+            row == {"baseline": "NOT_ESTABLISHED", "status": "NOT_CHECKED"}
+            for row in receipt["input_checks"].values()
+        )
+        assert receipt["snapshot_cleanup"]["status"] == "NOT_CREATED"
+        assert manager.list_jobs() == []  # The checker did not stop the source manager.
+    finally:
+        manager.close()
+    after = marker.stat()
+    assert (identity.st_ino, identity.st_size, identity.st_mtime_ns) == (
+        after.st_ino, after.st_size, after.st_mtime_ns
+    )
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native Windows open-handle delete refusal")
+def test_native_cleanup_error_fails_otherwise_valid_downloads(
+    checker, built, physical_tmp, monkeypatch
+):
+    from selcal.ui_jobs import JobManager
+
+    workspace, job_id, _ = _copy(built, physical_tmp)
+    saved = physical_tmp / "saved"
+    _save_current(workspace, job_id, saved)
+    before, saved_before = _tree(workspace), _tree(saved)
+    out = physical_tmp / "cleanup-out"
+    out.mkdir()
+    args = argparse.Namespace(
+        workspace=workspace, saved=saved, out=out, expect=None, count=3,
+        python=sys.executable, max_bytes="8388608", allow_history=False,
+    )
+    original_close, held = JobManager.close, []
+
+    def close_with_external_reader(manager):
+        original_close(manager)
+        # A separate real Windows handle denies deletion after the writer was released.
+        held.append(os.open(manager.workspace / "writer.lock", os.O_RDONLY | os.O_BINARY))
+
+    monkeypatch.setattr(JobManager, "close", close_with_external_reader)
+    try:
+        receipt = checker.check(args)
+        assert receipt["content_checks"] == "PASS"
+        assert all(row["status"] == "PASS" for row in receipt["files"])
+        assert receipt["status"] == "FAIL" and receipt["failure_phase"] == "snapshot_cleanup"
+        assert "PermissionError" in receipt["first_error"]
+        assert receipt["snapshot_cleanup"]["status"] == "FAIL"
+        assert receipt["snapshot_cleanup"]["manager_close"] == "PASS"
+        assert Path(receipt["snapshot_cleanup"]["path"]).is_dir()
+        assert receipt["inputs_unchanged"] is True
+        assert _tree(workspace) == before and _tree(saved) == saved_before
+    finally:
+        for descriptor in held:
+            os.close(descriptor)
+        monkeypatch.undo()
+        snapshot = out / "workspace-snapshot"
+        if snapshot.exists():
+            shutil.rmtree(snapshot)
 
 
 def test_browser_duplicate_suffix_is_accepted_and_reported(built, physical_tmp):
@@ -231,7 +332,7 @@ def test_valid_html_of_another_record_fails_semantic_check(built, physical_tmp):
     assert row["job_binding"] == "PASS" and row["html_content"] == "FAIL", row
 
 
-@pytest.mark.parametrize("damage", ["empty", "truncated", "foreign_name"])
+@pytest.mark.parametrize("damage", ["empty", "truncated", "foreign_name", "corrupt_zip"])
 def test_empty_truncated_or_unknown_files_fail(built, physical_tmp, damage):
     workspace, job_id, _ = _copy(built, physical_tmp)
     saved = _save_current(workspace, job_id, physical_tmp / "saved")
@@ -239,10 +340,32 @@ def test_empty_truncated_or_unknown_files_fail(built, physical_tmp, damage):
         saved["bundle"].write_bytes(b"")
     elif damage == "truncated":
         saved["record"].write_bytes(saved["record"].read_bytes()[:-1])
+    elif damage == "corrupt_zip":
+        # R19 v3 review: a partial download raised BadZipFile and crashed the checker.
+        saved["bundle"].write_bytes(b"PK\x03\x04" + bytes(64))
     else:
         (physical_tmp / "saved" / "evidence (4).zip").write_bytes(b"PK")
     code, receipt = _check(physical_tmp, workspace, physical_tmp / "saved")
     assert code == 1 and receipt["status"] == "FAIL"
+    if damage == "corrupt_zip":
+        # Caught by the byte-equality check first; the archive guard below covers the case
+        # where the bytes pass but the archive still cannot be opened.
+        assert receipt["first_error"]
+
+
+def test_unreadable_archive_is_a_check_failure_not_a_crash(physical_tmp):
+    """R19 v3 review: zipfile.BadZipFile escaped the checker's except clause."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("check_saved_downloads", CHECKER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    archive = physical_tmp / "partial-evidence.zip"
+    archive.write_bytes(b"PK\x03\x04" + bytes(64))
+    with pytest.raises(module.CheckFailed, match="not a readable ZIP archive"):
+        module._unpack(archive, physical_tmp / "unpacked")
+    assert not (physical_tmp / "unpacked").exists()
 
 
 def test_history_file_needs_explicit_mode_and_is_labelled(built, physical_tmp):
@@ -301,11 +424,15 @@ def _flow(tmp: Path, python: str, *extra: str, data: Path = EXAMPLE) -> tuple[in
             *extra,
         ],
         capture_output=True,
-        text=True,
-        encoding="utf-8",
         timeout=600,
     )
-    return done.returncode, json.loads((out / "receipt.json").read_text(encoding="utf-8")), out
+    receipt = json.loads((out / "receipt.json").read_text(encoding="utf-8"))
+    # The console summary is ASCII-escaped JSON whatever the console code page, and says what
+    # the receipt says (R17 item 8).
+    summary = json.loads(done.stdout.decode("ascii"))
+    assert (summary["status"], summary["first_error"]) == (receipt["status"],
+                                                            receipt["first_error"])
+    return done.returncode, receipt, out
 
 
 def test_research_flow_passes_every_step_on_the_example(physical_tmp):
@@ -349,6 +476,11 @@ def test_unstartable_python_is_recorded(physical_tmp):
     assert code == 1 and receipt["steps"][0]["status"] == "CANNOT_START"
 
 
+def test_unstartable_python_under_a_chinese_path_is_reported_in_ascii(physical_tmp):
+    code, receipt, _ = _flow(physical_tmp, str(physical_tmp / "缺失 目录" / "python"))
+    assert code == 1 and receipt["steps"][0]["status"] == "CANNOT_START"
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX launcher fixture")
 def test_malformed_output_and_changed_input_are_separate_failures(physical_tmp):
     data = physical_tmp / "data"
@@ -367,3 +499,32 @@ def test_malformed_output_and_changed_input_are_separate_failures(physical_tmp):
     assert "not CLI JSON" in receipt["first_error"]
     assert receipt["inputs_after"]["series.csv"]["state"] == "changed"
     assert receipt["inputs_after"]["pearson.json"]["state"] == "unchanged"
+
+
+def test_research_flow_with_relative_paths_under_a_deep_folder(physical_tmp):
+    """R17 Windows item 1 class: children start in a short folder; relative paths keep meaning."""
+    caller = physical_tmp / "深 目录"
+    while len(str(caller)) < 200:
+        caller = caller / "layer-0123456789"
+    shutil.copytree(EXAMPLE, caller / "data")
+    (caller / "selcal.py").write_text("raise SystemExit('stray selcal.py')\n", encoding="utf-8")
+    (caller / "cases.json").write_text(
+        json.dumps(
+            {
+                "schema": "selcal.research-cases.v1",
+                "cases": [dict(CASE, input="series.csv", config="pearson.json")],
+            }
+        ),
+        encoding="utf-8",
+    )
+    done = subprocess.run(
+        [sys.executable, "-I", str(FLOW), "--python", sys.executable, "--data", "data",
+         "--expect", "cases.json", "--out", "flow 结果"],
+        cwd=caller,
+        capture_output=True,
+        timeout=600,
+    )
+    receipt = json.loads((caller / "flow 结果" / "receipt.json").read_text(encoding="utf-8"))
+    assert done.returncode == 0 and receipt["status"] == "PASS", receipt["first_error"]
+    assert len(receipt["launch_cwd"]) < len(str(caller))
+    assert not Path(receipt["launch_cwd"]).exists()

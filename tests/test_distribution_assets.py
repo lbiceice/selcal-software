@@ -269,6 +269,9 @@ def test_sdist_contains_documented_user_assets(distributions: tuple[Path, Path, 
         "docs/benchmarks/in_memory_standard_20261003_alg.json",
         "docs/benchmarks/in_memory_standard_20261004_r13.json",
         "docs/benchmarks/in_memory_standard_20261006_r16.json",
+        "docs/benchmarks/in_memory_standard_20261006_r16b.json",
+        "docs/benchmarks/in_memory_standard_20261006_r17.json",
+        "docs/benchmarks/in_memory_standard_20261008_r21.json",
     }
     readme = (source / "README.md").read_text(encoding="utf-8")
     required.update(re.findall(r"(?:examples|scripts)/[A-Za-z0-9_./-]+\.py", readme))
@@ -327,6 +330,30 @@ def test_ui_assets_are_exact_in_both_distributions(distributions: tuple[Path, Pa
             content = (source / "src" / "selcal" / "web" / name).read_bytes()
             assert archive.read("selcal/web/" + name) == content
             assert source_files["src/selcal/web/" + name] == content
+
+
+def test_sdist_contains_the_citation_referenced_by_readme(
+    distributions: tuple[Path, Path, Path],
+) -> None:
+    source, sdist, _ = distributions
+    citation = (source / "CITATION.cff").read_bytes()
+    assert citation
+    assert "CITATION.cff" in (source / "README.md").read_text(encoding="utf-8")
+    assert _sdist_files(sdist)["CITATION.cff"] == citation
+
+
+@pytest.mark.parametrize("name", [
+    "windows_check.ps1", "windows_native_capture.ps1", "windows_evidence_archive.ps1",
+])
+def test_sdist_includes_runner_and_helpers_required_by_shipped_tests(
+    distributions: tuple[Path, Path, Path], name: str,
+) -> None:
+    source, sdist, _ = distributions
+    files = _sdist_files(sdist)
+    assert "tests/test_windows_check_workpaths.py" in files
+    relative = "scripts/" + name
+    assert relative in files, f"sdist ships runner tests without their dependency: {relative}"
+    assert files[relative] == (source / relative).read_bytes()
 
 
 def test_distributions_exclude_internal_reviews_and_generated_outputs(

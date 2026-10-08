@@ -40,6 +40,20 @@ from selcal.workflow_export import verify_export
 from selcal.workflow_store import _is_link, read_record, refuse_existing_path
 
 _ID = re.compile(r"[0-9a-f]{32}\Z")
+# Files that macOS Finder and Windows Explorer drop into any folder they display. Only these exact
+# names, and only as regular non-link files, are ignored; every other unexpected member still
+# refuses the workspace or bundle (R19 v3 review: a viewed folder locked out every saved job).
+_OS_METADATA = frozenset({".DS_Store", "desktop.ini", "Thumbs.db"})
+
+
+def _is_os_metadata(path: Path) -> bool:
+    if path.name not in _OS_METADATA:
+        return False
+    try:
+        info = path.lstat()
+    except OSError:
+        return False
+    return not _is_link(info) and stat.S_ISREG(info.st_mode)
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _MARKER = {"schema": "selcal.ui-workspace.v1"}
 _META_KEYS = {
@@ -372,7 +386,7 @@ class JobManager:
             self.workspace.mkdir(mode=0o700)
         _real_directory(self.workspace)
         marker = self.workspace / "workspace.json"
-        if not any(self.workspace.iterdir()):
+        if not any(not _is_os_metadata(p) for p in self.workspace.iterdir()):
             _write_new(marker, _encoded(_MARKER))
             (self.workspace / "jobs").mkdir(mode=0o700)
         if strict_json(_read(marker, 1024)) != _MARKER:
@@ -400,6 +414,8 @@ class JobManager:
     def _load_jobs(self) -> None:
         _real_directory(self.workspace / "jobs")
         for path in sorted((self.workspace / "jobs").iterdir()):
+            if _is_os_metadata(path):
+                continue
             if not _ID.fullmatch(path.name):
                 raise UIError("Unexpected workspace member; keep the directory for inspection.")
             try:
@@ -697,7 +713,7 @@ class JobManager:
         _real_directory(directory)
         summary = verify_export(directory, max_bytes=limit)
         names = _BUNDLE_NAMES | {"input." + form}
-        if {p.name for p in directory.iterdir()} != names:
+        if {p.name for p in directory.iterdir() if not _is_os_metadata(p)} != names:
             raise UIError("An evidence bundle must contain exactly its eleven fixed members.")
         members: dict[str, bytes] = {}
         remaining = limit
@@ -919,8 +935,14 @@ class JobManager:
             argv = [getattr(sys, "executable", "")]
             if sys.flags.isolated:
                 argv.append("-I")
-            elif sys.flags.ignore_environment:
-                argv.append("-E")
+            else:
+                if sys.flags.ignore_environment:
+                    argv.append("-E")
+                # "-m selcal" would otherwise put the working directory first on sys.path, where
+                # a stray selcal.py could replace the installed package; -P (Python 3.11+) leaves
+                # it out, so the child keeps the helper's working directory (R17 item 2: a deep
+                # operation folder as working directory cannot start a process on Windows).
+                argv.append("-P")
             argv += ["-m", "selcal", action]
             if action in {"verify", "report", "export"}:
                 assert subject is not None
@@ -977,9 +999,6 @@ class JobManager:
                     argv,
                     executable=executable,
                     env=environment,
-                    # "-m selcal" puts the working directory first on sys.path; the fresh
-                    # operation directory holds no module that could shadow the package.
-                    cwd=operation,
                     shell=False,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.PIPE,

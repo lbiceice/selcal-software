@@ -48,6 +48,9 @@ number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
   NumPy versions. Its information is computed from the exact integer counts with 50-digit decimal
   logarithms and rounded once, so NetTE values are the same on every platform (np.log and np.sum
   differed in the last bit between NumPy versions and CPUs). The preprocessing identity is renamed.
+  All of this decimal arithmetic runs in one private, fully specified context, so a caller's decimal
+  precision, rounding or traps (in any thread) no longer change the result: before, the bundled
+  binned case gave E = 4, 2, 3, 3 at caller precision 2, 6, 28, 50 instead of the exact 3.
 - Outputs refuse a name occupied by a dangling symbolic link (Windows exclusive creation followed it).
 - The local interface holds a lock on its workspace: a second helper on the same workspace is refused
   instead of marking the first helper's running jobs as interrupted.
@@ -55,8 +58,78 @@ number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
   and reported; it no longer stops the workspace and its healthy jobs from opening.
 - Interface child processes run in their own operation folder, so a module named selcal in the folder
   where the helper was started cannot replace the installed package.
-- `scripts/verify_installed_identity.py` checks an installation against its RECORD hashes and,
-  optionally, against the wheel it should come from.
+- `scripts/verify_installed_identity.py` checks an installation against the bytes of the wheel it
+  should come from (data files at their installed location; pip's bytecode, entry-point launchers
+  (the exact text pip 22.3-26.2.1 writes, and on Windows the launcher stub, interpreter line and
+  ZIP layout, including the extra CRLF that pip 22.3-24.0 put before the ZIP) and installer metadata each checked by kind; extra files in the package folders
+  refused), or,
+  without a wheel, against its RECORD hashes. It previously compared the two RECORD files, which
+  rejected every normal pip installation and missed an edit made together with RECORD. The Windows
+  installer runs it before writing READY.json.
+- The Windows runner no longer states that disabled long paths are the cause of a failure; it lists
+  the order in which to diagnose one.
+
+### Fixed after the R16 Windows test (2026-10-06)
+
+- The installed-identity check classified files by the lowercased path key Windows uses for
+  comparison, so a normal installation was refused for its own `INSTALLER` and `REQUESTED` files;
+  files are now classified by their real names.
+- Interface child processes keep the helper's working directory and start with `-P` (or `-I`), so
+  the working directory is not searched for modules; starting them in a deep operation folder
+  failed on Windows, where a process's working directory is limited to about 258 characters.
+- When a download manager such as IDM takes over a download (HTTP 204), the page says so and that
+  the saved state is unknown, with the path of the checked original, instead of reporting a failure.
+- When another window's operation is running, the page disables starting actions and explains a
+  refused request (HTTP 409) instead of reporting a failure of the current job.
+- Test and tool fixes for the Chinese Windows environment: the pressure test runs in the locked test
+  environment (psutil 7.0.0 added to the `dev` extra) instead of a uv overlay whose `.pth` file
+  could not be read under the cp936 code page; child-process output that tests parse is
+  ASCII-escaped JSON; the native-test gate reports call failures with teardown errors as such,
+  not as a duplicate testcase; interface tests wait while progress advances instead of a fixed
+  deadline, and stop running jobs through the interface before ending the helper.
+- The documentation states that the exceedance threshold is computed in binary64 and differs from
+  `tie_tolerance`, and gives the NetTE time indices with a worked example.
+
+### Fixed after the R17 Windows test (2026-10-07)
+
+- The acceptance and research-case tools start every child command in a short, new, empty folder
+  and pass files as absolute paths. Windows cannot start a process whose working directory is
+  longer than about 258 characters, so deep result folders failed with WinError 267. A command
+  that cannot start is now recorded (`started=false`) and counted as a failed check.
+- The local interface follows the job it shows when another window or tab runs it: the state and
+  the starting actions update without reselecting the job.
+- The Windows install, example and acceptance scripts keep each program's output as raw bytes and
+  decode it line by line (UTF-8, otherwise the system ANSI code page) instead of through the console
+  code page, which had replaced Chinese folder names in the logs. The console code page and the
+  programs' environment are not changed.
+- The final Windows acceptance receipt reads `RUNNING` (with the current step) until the run ends,
+  then `PASS_AUTOMATED_ONLY` or `FAIL`; a run stopped early reads `INCOMPLETE`.
+
+### Fixed after the R18 Windows test (2026-10-07)
+
+- Tests that need repository-only files are skipped one by one, so every test keeps its name in the
+  JUnit report; a whole-module skip had produced a record without a name, which the native Windows
+  evidence check rightly refuses.
+- Native output is decoded with the encoding its producer states (Python reports its own, for the
+  same executable and flags), not guessed: cp936 bytes such as C3 A6 are also valid UTF-8, so the
+  guess could silently show another character. Lines that are not valid in the stated encoding are
+  marked; the exact bytes are kept.
+- The precision acceptance check compares records only when all five runs exited 0 and left a
+  readable record, marks the relocation and tamper checks as failed when the first record is
+  missing, and ends with a failure summary and a nonzero exit after any unexpected error. Child
+  commands start in the system temporary folder, or at the root of the output drive when that
+  folder's path is very long.
+
+### Fixed after the R19 v3 Windows acceptance review (2026-10-08)
+
+- A `.DS_Store`, `desktop.ini` or `Thumbs.db` file that a file browser writes into the workspace, its
+  `jobs/` folder or an evidence bundle no longer makes the interface refuse the whole workspace or the
+  bundle. Only those three names, as regular non-link files, are ignored; every other unexpected
+  member is still refused, and links under those names are still refused.
+- The saved-download checker reports a partial or corrupt evidence ZIP as a failed file in its receipt
+  instead of stopping with a traceback.
+- Records written by earlier development snapshots are refused by the software identity check, as
+  documented; the 64 scaled-ULP tie rule of this version is not applied to them retroactively.
 
 ### Documentation and metadata
 

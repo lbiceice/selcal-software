@@ -42,6 +42,37 @@ def request(server, method, path, body=None, headers=None):
     return result
 
 
+_RETAINED = re.compile(r"retained=(\d+)/")
+
+
+def wait_while_progressing(fetch, done, *, stall=60.0, cap=900.0, what="job"):
+    """Poll until done(job); fail if nothing observable advances for `stall` seconds.
+
+    R17 items 4-5 (R16 Windows return): every replicate the interface runs is a fully
+    synchronized checkpoint commit, which takes a large part of a second on some Windows disks,
+    so a fixed total deadline mixed up "slow" and "stuck". Progress is the latest committed or
+    replayed replicate count from the CLI's own progress lines, together with the state.
+    """
+    started = last_change = time.monotonic()
+    last = None
+    while True:
+        job = fetch()
+        if done(job):
+            return job
+        assert job["state"] == "running", job
+        found = _RETAINED.findall(job.get("progress", ""))
+        marker = (job["state"], found[-1] if found else None, len(job.get("progress", "")))
+        now = time.monotonic()
+        if marker != last:
+            last, last_change = marker, now
+        if now - last_change > stall:
+            pytest.fail(f"{what} made no observable progress for {stall:.0f} s "
+                        f"(last retained={marker[1]}, {now - started:.0f} s in total)")
+        if now - started > cap:
+            pytest.fail(f"{what} still progressing after {cap:.0f} s (retained={marker[1]})")
+        time.sleep(0.05)
+
+
 def test_static_and_example_routes_are_fixed_and_secured(server):
     for path, content_type in [
         ("/", "text/html"),
@@ -84,16 +115,14 @@ def test_unedited_page_defaults_complete_the_packaged_example_over_http(server):
         == 200
     )
 
+    def fetch():
+        status, _, body = request(server, "GET", f"/api/jobs/{job_id}")
+        assert status == 200
+        return json.loads(body)
+
     def finish():
-        deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            status, _, body = request(server, "GET", f"/api/jobs/{job_id}")
-            assert status == 200
-            job = json.loads(body)
-            if job["state"] != "running":
-                return job
-            time.sleep(0.02)
-        pytest.fail("The unchanged packaged example did not finish")
+        return wait_while_progressing(fetch, lambda job: job["state"] != "running",
+                                      what="The unchanged packaged example")
 
     assert request(server, "POST", f"/api/jobs/{job_id}/validate", b"")[0] == 200
     assert finish()["state"] == "validated"

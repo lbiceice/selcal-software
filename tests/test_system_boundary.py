@@ -5,6 +5,7 @@ import re
 import tomllib
 from pathlib import Path
 
+import pytest
 from _documentation import public_documentation_text
 
 import selcal
@@ -66,6 +67,16 @@ def _dependency_name(dependency: str) -> str:
 
 def _concrete_adapter_names_in(text: str) -> set[str]:
     return {name for name in CONCRETE_ADAPTER_NAMES if name in text}
+
+
+def _machine_local_user_paths(text: str) -> tuple[str, ...]:
+    # Author names and citation contacts are portable metadata. Detect actual home/profile
+    # paths, including forward-slash Windows paths, instead of banning a person's name.
+    pattern = (
+        r"(?:[a-z]:[\\/]|/|\\\\[^\\/\s\"']+[\\/])"
+        r"(?:Users|home|Documents and Settings)[\\/][^\\/\s\"']+"
+    )
+    return tuple(re.findall(pattern, text, flags=re.IGNORECASE))
 
 
 def _package_python_files(source_root: Path, include: list[str]) -> tuple[Path, ...]:
@@ -192,8 +203,35 @@ def test_shipped_text_is_portable() -> None:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        assert "/" + "Users/" not in text, path
-        assert "vin" + "cent" not in text.casefold(), path
+        assert not _machine_local_user_paths(text), path
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Author: Bingbing Liang",
+        "email: vincentdsnail@gmail.com",
+        "Copy files from %USERPROFILE% after choosing the destination.",
+    ],
+)
+def test_portability_guard_allows_author_metadata_and_symbolic_profiles(text: str) -> None:
+    assert not _machine_local_user_paths(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "/" + "Users/alice/research.csv",
+        "/" + "home/alice/research.csv",
+        "C:" + "\\Users\\alice\\research.csv",
+        "C:/" + "Users/alice/research.csv",
+        "d:/" + "users/alice",
+        "D:" + "\\Documents and Settings\\alice\\research.csv",
+        "\\\\workstation" + "\\Users\\alice\\research.csv",
+    ],
+)
+def test_portability_guard_rejects_private_user_paths(text: str) -> None:
+    assert _machine_local_user_paths(text)
 
 
 def test_portable_provenance_uses_logical_authorities_and_legacy_identity() -> None:
@@ -243,7 +281,17 @@ def test_readme_states_implemented_and_absent_product_boundaries() -> None:
     assert "selcal verify-export evidence --max-bytes 8388608" in readme_text
     assert "PUBLIC RELEASE PENDING" in readme_text
     assert "RESUME, EVIDENCE BUNDLES, UI: NOT DUE" not in readme_text
-    assert "have not had a new native Windows execution" in readme_text
+    normalized = " ".join(readme_text.split())
+    assert "The 2026-10-07 R19 v2 return" in normalized
+    assert (
+        "one host, one Python version and one browser-engine result, "
+        "not ordinary Chrome/Edge or macOS matrix acceptance."
+    ) in normalized
+    assert "its new results must be recorded separately after execution." in normalized
+    assert (
+        "Offline use with the proxy off, native console Ctrl-C, ordinary Chrome/Edge, "
+        "desktop Excel and other machines still require their own execution evidence."
+    ) in normalized
     assert "No license has been selected" not in readme_text
     assert "release surface is public" not in readme_text
     assert "SelCal is not a causal-edge inference product." in readme_text

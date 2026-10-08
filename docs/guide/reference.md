@@ -394,6 +394,14 @@ inner edge goes to the upper bin. Integer or otherwise discrete data often lie o
 such data by a factor that is not exact in binary floating point (for example 0.1) moves those values
 off the edges and can change the result. Choose the number of bins with the data's values in mind.
 
+Indices: with L the largest searched lag, every candidate uses the same time points
+t = L, ..., n-1 (common support). For lag l the statistic is
+`forward = I(X[t-l]; Y[t] | Y[t-1])`, `reverse = I(Y[t-l]; X[t] | X[t-1])` and
+`NetTE = forward - reverse`, where X is the source and Y the target. The conditioning history is
+always the series' own previous value (t-1), whatever l; only the other series is lagged.
+For example, with n = 10 and lags 1-3, t runs over 3, ..., 9 (seven points), and for l = 2 the
+forward term pairs X[1..7] with Y[3..9] given Y[2..8].
+
 The third example uses the other registered statistic/null combination: three-bin
 equal-width NetTE with strict length-two block shuffling.
 

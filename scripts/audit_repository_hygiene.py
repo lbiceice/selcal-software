@@ -66,6 +66,9 @@ _PUBLIC_BENCHMARK_FILES = (
     "in_memory_standard_20261004_r13.json",
     "in_memory_standard_20261004_r14.json",
     "in_memory_standard_20261006_r16.json",
+    "in_memory_standard_20261006_r16b.json",
+    "in_memory_standard_20261006_r17.json",
+    "in_memory_standard_20261008_r21.json",
 )
 _MACHINE_PATH_PATTERNS = (
     re.compile(r"/(?:Users|home)/[^/\s\"']+/"),
@@ -130,10 +133,14 @@ def _release_surface_paths(root: Path) -> tuple[Path, ...]:
         "MANIFEST.in",
         "README.md",
         "CHANGELOG.md",
+        "CITATION.cff",
         "pyproject.toml",
         "uv.lock",
         "LICENSE.txt",
         "Licence.txt",
+        "scripts/windows_check.ps1",
+        "scripts/windows_native_capture.ps1",
+        "scripts/windows_evidence_archive.ps1",
     }
     exact.update("docs/benchmarks/" + name for name in _PUBLIC_BENCHMARK_FILES)
     config = root / "pyproject.toml"

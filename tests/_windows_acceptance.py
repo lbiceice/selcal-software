@@ -4,7 +4,6 @@ import argparse
 import json
 import sys
 import xml.etree.ElementTree as ET
-from collections import Counter
 from pathlib import Path
 
 REQUIRED = (
@@ -19,8 +18,31 @@ REQUIRED = (
 )
 
 
+class GateFailure(ValueError):
+    """A failed gate, with the required-node coverage and the whole-suite result kept apart."""
+
+    def __init__(self, message, details=None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+# pytest writes a second testcase entry with the same identity when a test that already has a
+# call outcome also errors in setup or teardown; only that form is an expected repeat.
+_PHASE_ERROR_PREFIXES = ("failed on setup with", "failed on teardown with")
+
+
+def _is_phase_error(case):
+    error = case.find("error")
+    return (error is not None and case.find("failure") is None
+            and (error.get("message") or "").startswith(_PHASE_ERROR_PREFIXES))
+
+
 def check_required_tests(path):
-    """Inspect testcase nodes, never aggregate attributes or a total-count claim."""
+    """Inspect testcase nodes, never aggregate attributes or a total-count claim.
+
+    Passes only if every testcase passed or was skipped and the seven required native nodes
+    passed. A failure states the required-node coverage and the suite result separately.
+    """
     try:
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as error:
@@ -29,11 +51,35 @@ def check_required_tests(path):
         raise ValueError("Not a JUnit testsuite report")
     cases = list(root.iter("testcase"))
     keys = [(case.get("classname"), case.get("name")) for case in cases]
-    counts = Counter(keys)
-    if not cases or any(not all(key) or count != 1 for key, count in counts.items()):
-        raise ValueError("Empty report, missing testcase identity, or duplicate testcase")
-    if any(node.tag in {"failure", "error"} for node in root.iter()):
-        raise ValueError("JUnit contains a failure or error")
+    if not cases or not all(all(key) for key in keys):
+        raise ValueError("Empty report or missing testcase identity")
+    entries = {}
+    for key, case in zip(keys, cases, strict=True):
+        entries.setdefault(key, []).append(case)
+    unexpected = ["::".join(key) for key, group in entries.items()
+                  if len(group) > 1 and sum(not _is_phase_error(case) for case in group) != 1]
+    if unexpected:
+        raise ValueError(f"Unexpected duplicate testcase: {unexpected[:5]}")
+    failed = sorted("::".join(key) for key, group in entries.items()
+                    if any(case.find("failure") is not None for case in group))
+    errored = sorted("::".join(key) for key, group in entries.items()
+                     if any(case.find("error") is not None for case in group))
+    required_failed = ["::".join(key) for key in REQUIRED if key in entries and any(
+        case.find("failure") is not None or case.find("error") is not None
+        or case.find("skipped") is not None for case in entries[key])]
+    missing = ["::".join(key) for key in REQUIRED if key not in entries]
+    if failed or errored:
+        details = {
+            "required": {"passed": len(REQUIRED) - len(missing) - len(required_failed),
+                         "of": len(REQUIRED), "missing": missing,
+                         "failed_errored_or_skipped": required_failed},
+            "suite": {"tests": len(entries), "failed": len(failed), "errored": len(errored),
+                      "failed_tests": failed[:20], "errored_tests": errored[:20]},
+        }
+        raise GateFailure(
+            f"Suite not clean: {len(failed)} tests failed and {len(errored)} had errors "
+            f"(of {len(entries)}); required native nodes passed "
+            f"{details['required']['passed']}/{len(REQUIRED)}", details)
     for suite in root.iter():
         if suite.tag not in {"testsuite", "testsuites"}:
             continue
@@ -44,8 +90,7 @@ def check_required_tests(path):
             supplied = suite.get(name)
             if supplied is not None and (not supplied.isdecimal() or int(supplied) != count):
                 raise ValueError(f"Contradictory JUnit {name}: {supplied}; actual {count}")
-    by_key = dict(zip(keys, cases, strict=True))
-    missing = ["::".join(key) for key in REQUIRED if key not in by_key]
+    by_key = {key: group[0] for key, group in entries.items()}
     skipped = ["::".join(key) for key in REQUIRED
                if key in by_key and by_key[key].find("skipped") is not None]
     if missing or skipped:
@@ -66,7 +111,8 @@ def main():
                 "This CLI requires native Windows; portable fixture parsing is not evidence")
         result = check_required_tests(args.junit)
     except ValueError as error:
-        print(json.dumps({"status": "FAIL", "error": str(error)}))
+        print(json.dumps({"status": "FAIL", "error": str(error),
+                          **getattr(error, "details", {})}))
         return 1
     print(json.dumps(result))
     return 0

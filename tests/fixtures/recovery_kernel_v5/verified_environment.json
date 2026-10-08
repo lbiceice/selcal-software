@@ -31,7 +31,7 @@
     },
     {
       "path": "src/selcal/statistics/binned_nette.py",
-      "sha256": "c046ed07756de965049ae760b93d764ffcb856909e4828404559b59fd8c64ce0"
+      "sha256": "2b469b19c033e3e105b9c33edd6fc693a53c50df64163f207371032d092a2d73"
     },
     {
       "path": "src/selcal/statistics/lagged_pearson.py",
@@ -51,7 +51,7 @@
     },
     {
       "case": "binned",
-      "sha256": "b5cde7fe4240ee547f3c5f20dafe8dd5633af0b9dfd1779fb49a98530c1e115e",
+      "sha256": "6aa57559d3e41dfb419dc2a32f92beb0054c2542516ef0e38ab6172001f8ef29",
       "full_byte_reproduction": true
     },
     {

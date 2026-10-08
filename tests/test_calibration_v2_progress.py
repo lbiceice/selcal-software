@@ -25,7 +25,7 @@ from selcal.resolution_v2 import resolve_plan_v2
 # v1 (before ALG-01) and v2 (R11 two-pass with BLAS sums) stay unchanged as history;
 # test_reference_change_is_bounded binds what each numeric-method change may alter.
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-REFERENCES = FIXTURES / "recovery_kernel_v4"
+REFERENCES = FIXTURES / "recovery_kernel_v5"
 CASES = (
     "sampled_pearson",
     "exact_pearson",
@@ -437,31 +437,43 @@ def test_callback_drift_is_rejected_before_next_payload(target, monkeypatch):
 
 IDENTITY_NETTE_V1 = "no_hidden_transform|observed_equal_width_edges_reused|common_support_max_lag"
 IDENTITY_NETTE_V2 = (
+    "no_hidden_transform|observed_exact_rational_equal_width_edges_reused|common_support_max_lag"
+)
+IDENTITY_NETTE_V3 = (
     "no_hidden_transform|observed_exact_rational_equal_width_edges_reused"
     "|exact_count_decimal_information|common_support_max_lag"
 )
 
 
+def _reference_documents(before_dir, after_dir, name):
+    old_manifest = json.loads((FIXTURES / before_dir / "manifest.json").read_text("utf-8"))
+    new_manifest = json.loads((FIXTURES / after_dir / "manifest.json").read_text("utf-8"))
+    assert old_manifest["cases"][name]["request"] == new_manifest["cases"][name]["request"]
+    old_bytes = (FIXTURES / before_dir / old_manifest["cases"][name]["file"]).read_bytes()
+    new_bytes = (FIXTURES / after_dir / new_manifest["cases"][name]["file"]).read_bytes()
+    assert hashlib.sha256(old_bytes).hexdigest() == old_manifest["cases"][name]["sha256"]
+    assert hashlib.sha256(new_bytes).hexdigest() == new_manifest["cases"][name]["sha256"]
+    return old_bytes, new_bytes
+
+
 @pytest.mark.parametrize("name", ["sampled_pearson", "exact_pearson", "binned", "pre_observed_ne"])
 def test_r16_reference_change_is_exactly_the_tie_rule_and_the_nette_identity(name):
-    """R16 (2026-10-06): exceedance ties within 64 scaled ULP count; NetTE edges are exact and
-    its information is computed from exact counts with decimal logarithms.
+    """R16 (2026-10-06), v3 -> v4: exceedance ties within 64 scaled ULP count and NetTE edges are
+    exact rationals.
 
-    The Pearson and failure cases are byte-identical. In the binned case NetTE values move by at
-    most one scaled ULP, its identity is renamed, and E and p change by exactly the ties the new
+    The Pearson and failure cases are byte-identical. In the binned case every float is
+    bit-identical, the NetTE identity is renamed, and E and p change by exactly the ties the new
     rule counts (a ln2/4 tie lost to rounding); every other field is unchanged.
     """
     from selcal.contracts_v2 import reaches_observed_decision
 
-    v3, v4 = FIXTURES / "recovery_kernel_v3", FIXTURES / "recovery_kernel_v4"
-    old_manifest = json.loads((v3 / "manifest.json").read_text("utf-8"))
-    new_manifest = json.loads((v4 / "manifest.json").read_text("utf-8"))
-    assert old_manifest["cases"][name]["request"] == new_manifest["cases"][name]["request"]
-    old_bytes = (v3 / old_manifest["cases"][name]["file"]).read_bytes()
-    new_bytes = (v4 / new_manifest["cases"][name]["file"]).read_bytes()
+    old_bytes, new_bytes = _reference_documents("recovery_kernel_v3", "recovery_kernel_v4", name)
     if name != "binned":
         assert old_bytes == new_bytes
         return
+    assert hashlib.sha256(new_bytes).hexdigest() == (
+        "b5cde7fe4240ee547f3c5f20dafe8dd5633af0b9dfd1779fb49a98530c1e115e"
+    )
     old, new = json.loads(old_bytes), json.loads(new_bytes)
     old_rows, new_rows = list(_floats_and_fields(old)), list(_floats_and_fields(new))
     assert [path for path, _ in old_rows] == [path for path, _ in new_rows]
@@ -470,10 +482,6 @@ def test_r16_reference_change_is_exactly_the_tie_rule_and_the_nette_identity(nam
             assert (before, after) == (IDENTITY_NETTE_V1, IDENTITY_NETTE_V2)
         elif path in ("/exceedance_count", "/p_value"):
             continue
-        elif isinstance(before, float) and path.endswith(
-            ("/estimate", "/selection_score", "/decision_statistic")
-        ):
-            assert abs(after - before) <= math.ulp(max(abs(before), abs(after), 1.0)), path
         else:
             assert before == after, path
     observed = float.fromhex(old["observed_selection"]["decision_statistic"]["$float64"])
@@ -486,3 +494,76 @@ def test_r16_reference_change_is_exactly_the_tie_rule_and_the_nette_identity(nam
         reaches_observed_decision(value, observed) for value in decisions
     )
     assert (old["exceedance_count"], new["exceedance_count"]) == (2, 3)
+
+
+@pytest.mark.parametrize("name", ["sampled_pearson", "exact_pearson", "binned", "pre_observed_ne"])
+def test_nette_decimal_information_reference_change_is_bounded(name):
+    """2026-10-06, v4 -> v5: NetTE information is computed from exact counts with 50-digit decimal
+    logarithms in a private context.
+
+    The Pearson and failure cases are byte-identical. In the binned case only NetTE statistic
+    values move, by at most one scaled ULP, and the identity is renamed; E, p, decisions and every
+    other field are unchanged. The observed value is now the correctly rounded ln(2)/4.
+    """
+    import decimal
+
+    old_bytes, new_bytes = _reference_documents("recovery_kernel_v4", "recovery_kernel_v5", name)
+    if name != "binned":
+        assert old_bytes == new_bytes
+        return
+    old, new = json.loads(old_bytes), json.loads(new_bytes)
+    old_rows, new_rows = list(_floats_and_fields(old)), list(_floats_and_fields(new))
+    assert [path for path, _ in old_rows] == [path for path, _ in new_rows]
+    for (path, before), (_, after) in zip(old_rows, new_rows, strict=True):
+        if path.endswith("/preprocessing_identity"):
+            assert (before, after) == (IDENTITY_NETTE_V2, IDENTITY_NETTE_V3)
+        elif isinstance(before, float) and path.endswith(
+            ("/estimate", "/selection_score", "/decision_statistic")
+        ):
+            assert abs(after - before) <= math.ulp(max(abs(before), abs(after), 1.0)), path
+        else:
+            assert before == after, path
+    reference = decimal.Context(prec=100).divide(decimal.Context(prec=100).ln(2), 4)
+    observed = float.fromhex(new["observed_selection"]["decision_statistic"]["$float64"])
+    assert observed == float(reference)
+
+
+def test_binned_nette_result_does_not_depend_on_the_callers_decimal_context():
+    """NetTE uses decimal arithmetic in its own fixed context: the caller's precision, rounding
+    and traps, in any thread, change neither the result bytes nor the caller's context."""
+    import decimal
+    from concurrent.futures import ThreadPoolExecutor
+
+    pair, request = _case("binned", "max_absolute")
+    resolution = resolve_plan_v2(request)
+
+    def run(precision, rounding, trap_inexact):
+        with decimal.localcontext() as context:
+            context.prec = precision
+            context.rounding = rounding
+            if trap_inexact:
+                context.traps[decimal.Inexact] = True
+            before = (context.prec, context.rounding, dict(context.traps))
+            encoded = wire.encode_calibration_result(
+                selcal.calibrate_selected_family(pair, resolution), max_bytes=1_000_000
+            )
+            assert (context.prec, context.rounding, dict(context.traps)) == before
+            return encoded
+
+    settings = [
+        (precision, rounding, trap)
+        for precision in (2, 6, 28, 50)
+        for rounding in (decimal.ROUND_HALF_EVEN, decimal.ROUND_DOWN, decimal.ROUND_CEILING)
+        for trap in (False, True)
+    ]
+    outside = decimal.getcontext().copy()
+    serial = {run(*setting) for setting in settings}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        concurrent = set(pool.map(lambda setting: run(*setting), settings * 2))
+    assert len(serial) == 1 and concurrent == serial
+    assert decimal.getcontext().prec == outside.prec
+    assert decimal.getcontext().rounding == outside.rounding
+    result = json.loads(serial.pop())
+    # Independent exact-count reference (100-digit logarithms, no SelCal statistic code): two
+    # null states equal the observed ln(2)/4 and one exceeds it.
+    assert (result["exceedance_count"], result["planned_replicates"]) == (3, 5)

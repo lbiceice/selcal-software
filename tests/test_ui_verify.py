@@ -274,7 +274,9 @@ def test_verify_failure_and_lifecycle_keep_the_same_reference(physical_tmp, monk
         before = files_at(path / "operations")
         actual_popen = subprocess.Popen
         calls = []
-        flags = ["-I"] if sys.flags.isolated else ["-E"] if sys.flags.ignore_environment else []
+        # -I already leaves the working directory off sys.path; otherwise -P does (R17 item 2).
+        flags = (["-I"] if sys.flags.isolated
+                 else ["-E", "-P"] if sys.flags.ignore_environment else ["-P"])
 
         def launch(argv, **kwargs):
             calls.append(argv)

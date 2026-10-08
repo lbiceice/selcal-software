@@ -142,3 +142,57 @@ def test_cli_does_not_turn_fixture_xml_into_nonwindows_native_evidence(tmp_path)
     else:
         assert result.returncode != 0 and payload["status"] == "FAIL"
         assert "native Windows" in payload["error"]
+
+
+def _phase_error(suite, classname, name, phase):
+    case = ET.SubElement(suite, "testcase", classname=classname, name=name)
+    ET.SubElement(case, "error", message=f"failed on {phase} with \"PermissionError\"")
+
+
+def test_call_failure_with_teardown_error_reports_suite_and_required_nodes_apart(tmp_path):
+    """R17 item 12: pytest records a call failure plus a teardown error as two entries with one
+    identity; the gate must still fail, but say what failed instead of "duplicate testcase"."""
+    module = checker()
+    other = ("tests.test_ui_resume", "test_resume[csv]")
+    path = report(tmp_path, (*REQUIRED, other))
+    tree = ET.parse(path)
+    suite = tree.find(".//testsuite")
+    ET.SubElement(tree.findall(".//testcase")[-1], "failure", message="timed out")
+    _phase_error(suite, *other, "teardown")
+    tree.write(path)
+    with pytest.raises(ValueError) as caught:
+        module.check_required_tests(path)
+    message = str(caught.value)
+    assert "duplicate" not in message
+    assert "1 tests failed and 1 had errors (of 8)" in message
+    assert "required native nodes passed 7/7" in message
+    assert caught.value.details["suite"]["failed_tests"] == ["::".join(other)]
+
+
+def test_a_phase_error_on_a_required_node_is_reported_as_not_passed(tmp_path):
+    module = checker()
+    path = report(tmp_path)
+    tree = ET.parse(path)
+    _phase_error(tree.find(".//testsuite"), *REQUIRED[0], "teardown")
+    tree.write(path)
+    with pytest.raises(ValueError) as caught:
+        module.check_required_tests(path)
+    assert "required native nodes passed 6/7" in str(caught.value)
+
+
+@pytest.mark.parametrize("extra", ["pass", "failure", "skipped", "error-without-phase"])
+def test_other_repeated_identities_are_still_refused_as_duplicates(tmp_path, extra):
+    module = checker()
+    path = report(tmp_path)
+    tree = ET.parse(path)
+    first = tree.find(".//testcase")
+    repeat = ET.SubElement(tree.find(".//testsuite"), "testcase", **first.attrib)
+    if extra == "failure":
+        ET.SubElement(repeat, "failure")
+    elif extra == "skipped":
+        ET.SubElement(repeat, "skipped")
+    elif extra == "error-without-phase":
+        ET.SubElement(repeat, "error", message="something else")
+    tree.write(path)
+    with pytest.raises(ValueError, match="Unexpected duplicate"):
+        module.check_required_tests(path)

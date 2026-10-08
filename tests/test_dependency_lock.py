@@ -56,6 +56,7 @@ def test_lockfile_records_runtime_and_all_declared_optional_surfaces() -> None:
         "build",
         "mypy",
         "pip",
+        "psutil",  # R17 item 3: the pressure test runs in the locked test environment
         "pytest",
         "pytest-cov",
         "ruff",

@@ -23,11 +23,17 @@ another folder, and a record with a single altered byte is refused.
 
 Every command's argv, working folder, exit code, stdout and stderr are kept in a new folder
 (nothing is overwritten). The script exits 0 only if every check passed, 1 otherwise.
+
+Child commands start in a short, new, empty folder and get every file as an absolute path, so
+deep result folders never become a process working directory (Windows cannot start a process
+whose working directory is longer than about 258 characters, even with long paths enabled). A
+command that cannot be started is recorded with started=false and counts as a failed check.
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import datetime as dt
 import hashlib
 import html
@@ -35,6 +41,8 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -45,23 +53,53 @@ EXPECTED = {"pearson": {"lag": 2, "p": 0.015}, "exact": {"lag": 2, "p": 0.03}}
 
 
 class Checker:
-    def __init__(self, out: Path) -> None:
+    def __init__(self, out: Path, launch: Path) -> None:
         self.out = out
+        # Short, new and empty: no deep path as process working directory, and no stray
+        # selcal.py there that "-m selcal" could import instead of the installed package.
+        self.launch = launch
         self.failures: list[str] = []
         self.count = 0
 
-    def cli(self, name: str, *args: str, cwd: Path) -> tuple[int, dict[str, Any] | None]:
-        for suffix in ("stdout", "stderr", "receipt.json"):
-            if (self.out / f"{name}.{suffix}").exists():
-                raise FileExistsError(f"command evidence already exists: {name}.{suffix}")
-        argv = [sys.executable, "-m", "selcal", *args]
-        done = subprocess.run(argv, cwd=cwd, capture_output=True, check=False)
-        (self.out / f"{name}.stdout").write_bytes(done.stdout)
-        (self.out / f"{name}.stderr").write_bytes(done.stderr)
-        receipt = {"argv": argv, "cwd": str(cwd), "exit_code": done.returncode}
+    def _keep(self, name: str, stdout: bytes, stderr: bytes, receipt: dict[str, Any]) -> None:
+        (self.out / f"{name}.stdout").write_bytes(stdout)
+        (self.out / f"{name}.stderr").write_bytes(stderr)
         (self.out / f"{name}.receipt.json").write_text(
             json.dumps(receipt, indent=1) + "\n", encoding="utf-8", newline="\n"
         )
+
+    def run(self, name: str, argv: list[str]) -> subprocess.CompletedProcess[bytes] | None:
+        """Run argv from the launch folder; None, with a started=false receipt, if it cannot."""
+        for suffix in ("stdout", "stderr", "receipt.json"):
+            if (self.out / f"{name}.{suffix}").exists():
+                raise FileExistsError(f"command evidence already exists: {name}.{suffix}")
+        receipt: dict[str, Any] = {
+            "argv": argv,
+            "cwd": str(self.launch),
+            "cwd_length": len(str(self.launch)),
+        }
+        try:
+            done = subprocess.run(argv, cwd=self.launch, capture_output=True, check=False)
+        except OSError as error:
+            receipt.update(
+                started=False,
+                exit_code=None,
+                error_type=type(error).__name__,
+                error=str(error),
+                winerror=getattr(error, "winerror", None),
+                errno=error.errno,
+            )
+            self._keep(name, b"", b"", receipt)
+            return None
+        receipt.update(started=True, exit_code=done.returncode)
+        self._keep(name, done.stdout, done.stderr, receipt)
+        return done
+
+    def cli(self, name: str, *args: str) -> tuple[int | None, dict[str, Any] | None]:
+        """Run one SelCal command; file arguments must be absolute paths."""
+        done = self.run(name, [sys.executable, "-m", "selcal", *args])
+        if done is None:
+            return None, {"error": "not_started", "detail": f"see {name}.receipt.json"}
         try:
             payload = json.loads(done.stdout.decode("utf-8").strip().splitlines()[-1])
         except (IndexError, UnicodeDecodeError, json.JSONDecodeError):
@@ -93,8 +131,8 @@ def _plans(work: Path) -> dict[str, Path]:
 
 def _case(c: Checker, name: str, plan: Path, work: Path) -> None:
     expected = EXPECTED[name]
-    record, report = f"{name}.sqlite", f"{name}.html"
-    code, out = c.cli(f"{name}-validate", "validate", "series.csv", plan.name, cwd=work)
+    series, record, report = work / "series.csv", work / f"{name}.sqlite", work / f"{name}.html"
+    code, out = c.cli(f"{name}-validate", "validate", str(series), str(plan))
     c.check(f"{name}: validate exit 0", code == 0, f"exit {code}")
     preflight = ((out or {}).get("data") or {}).get("preflight") or {}
     c.check(
@@ -103,13 +141,11 @@ def _case(c: Checker, name: str, plan: Path, work: Path) -> None:
         and (preflight.get("plan") or {}).get("status") == "EXECUTABLE",
         f"error {(out or {}).get('error')}: {(out or {}).get('detail')}",
     )
-    code, out = c.cli(
-        f"{name}-run", "run", "series.csv", plan.name, record, "--max-bytes", CAP, cwd=work
-    )
+    code, out = c.cli(f"{name}-run", "run", str(series), str(plan), str(record), "--max-bytes", CAP)
     data = (out or {}).get("data") or {}
     c.check(
         f"{name}: run exit 0 and record saved",
-        code == 0 and (work / record).is_file(),
+        code == 0 and record.is_file(),
         f"exit {code}, error {(out or {}).get('error')}",
     )
     c.check(
@@ -124,16 +160,16 @@ def _case(c: Checker, name: str, plan: Path, work: Path) -> None:
         ("replay", "--replay", "MATCH"),
         ("decision", "--replay-decision", "DECISION_MATCH"),
     ):
-        args = ["verify", record, "--max-bytes", CAP] + ([flag] if flag else [])
-        code, out = c.cli(f"{name}-{mode}", *args, cwd=work)
+        args = ["verify", str(record), "--max-bytes", CAP] + ([flag] if flag else [])
+        code, out = c.cli(f"{name}-{mode}", *args)
         got = ((out or {}).get("data") or {}).get("replay")
         c.check(
             f"{name}: verify {flag or ''} -> {verdict}".replace("  ", " "),
             code == 0 and got == verdict,
             f"exit {code}, {got}, error {(out or {}).get('error')}",
         )
-    code, out = c.cli(f"{name}-report", "report", record, report, "--max-bytes", CAP, cwd=work)
-    text = (work / report).read_text(encoding="utf-8") if (work / report).is_file() else ""
+    code, out = c.cli(f"{name}-report", "report", str(record), str(report), "--max-bytes", CAP)
+    text = report.read_text(encoding="utf-8") if report.is_file() else ""
     c.check(f"{name}: report exit 0 and HTML written", code == 0 and bool(text), f"exit {code}")
     shown = html.unescape(text)
     c.check(
@@ -206,13 +242,11 @@ def _foreign_records(c: Checker, records: Path, work: Path) -> None:
             "made by different code (version or source files differ); regenerate these records "
             "with the code under test, or check them with --legacy-records",
         )
-        code, out = c.cli(f"{name}-verify", "verify", local.name, "--max-bytes", CAP, cwd=work)
+        code, out = c.cli(f"{name}-verify", "verify", str(local), "--max-bytes", CAP)
         c.check(
             f"{source.name}: verify exit 0", code == 0, f"exit {code}, {(out or {}).get('error')}"
         )
-        code, out = c.cli(
-            f"{name}-replay", "verify", local.name, "--max-bytes", CAP, "--replay", cwd=work
-        )
+        code, out = c.cli(f"{name}-replay", "verify", str(local), "--max-bytes", CAP, "--replay")
         if recorded == current:
             c.check(
                 f"{source.name}: same code, Python, NumPy and platform, byte replay MATCH",
@@ -234,11 +268,10 @@ def _foreign_records(c: Checker, records: Path, work: Path) -> None:
         code, out = c.cli(
             f"{name}-decision",
             "verify",
-            local.name,
+            str(local),
             "--max-bytes",
             CAP,
             "--replay-decision",
-            cwd=work,
         )
         data = (out or {}).get("data") or {}
         detail = data.get("decision_replay") or {}
@@ -258,16 +291,14 @@ def _legacy_records(c: Checker, records: Path, work: Path) -> None:
         local = work / f"legacy-{source.name}"
         if not _copy_record(c, source, local):
             continue
-        code, out = c.cli(f"{name}-verify", "verify", local.name, "--max-bytes", CAP, cwd=work)
+        code, out = c.cli(f"{name}-verify", "verify", str(local), "--max-bytes", CAP)
         c.check(
             f"legacy {source.name}: still readable, verify exit 0",
             code == 0,
             f"exit {code}, {(out or {}).get('error')}",
         )
         for mode, flag in (("replay", "--replay"), ("decision", "--replay-decision")):
-            code, out = c.cli(
-                f"{name}-{mode}", "verify", local.name, "--max-bytes", CAP, flag, cwd=work
-            )
+            code, out = c.cli(f"{name}-{mode}", "verify", str(local), "--max-bytes", CAP, flag)
             c.check(
                 f"legacy {source.name}: {flag} refused as environment_mismatch (other code)",
                 code == 4 and (out or {}).get("error") == "environment_mismatch",
@@ -280,21 +311,38 @@ def _precision(c: Checker, work: Path) -> None:
     plans = _plans(work)
     for name, plan in plans.items():
         expected = EXPECTED[name]
-        digests, values = set(), set()
+        digests: list[str | None] = []
+        values = set()
+        exits = []
         for attempt in range(5):
-            record = f"repeat{attempt}-{name}.sqlite"
+            record = work / f"repeat{attempt}-{name}.sqlite"
             code, out = c.cli(
                 f"{name}-repeat{attempt}",
                 "run",
-                "series.csv",
-                plan.name,
-                record,
+                str(work / "series.csv"),
+                str(plan),
+                str(record),
                 "--max-bytes",
                 CAP,
-                cwd=work,
             )
             data = (out or {}).get("data") or {}
-            digests.add(hashlib.sha256((work / record).read_bytes()).hexdigest())
+            exits.append(code)
+            # Reading and hashing bytes does not establish that this is a valid SelCal record:
+            # five empty files or five identical corrupt files must not pass this comparison.
+            try:
+                raw = record.read_bytes() if code == 0 else b""
+            except OSError:
+                raw = b""
+            digest = None
+            if raw:
+                verified, verification = c.cli(
+                    f"{name}-repeat{attempt}-verify", "verify", str(record), "--max-bytes", CAP
+                )
+                if verified == 0 and ((verification or {}).get("data") or {}).get(
+                    "replay"
+                ) == "NOT_PERFORMED":
+                    digest = hashlib.sha256(raw).hexdigest()
+            digests.append(digest)
             values.add(
                 (
                     code,
@@ -304,24 +352,38 @@ def _precision(c: Checker, work: Path) -> None:
                     data.get("reject_null"),
                 )
             )
+        produced = [digest for digest in digests if digest is not None]
+        c.check(
+            f"{name}: all five separate runs exit 0 and leave a readable record",
+            len(produced) == 5,
+            f"exit codes {exits}; {len(produced)} of 5 records nonempty and verified",
+        )
         c.check(
             f"{name}: five separate runs give one identical record (byte for byte)",
-            len(digests) == 1,
-            f"{len(digests)} different records",
+            len(produced) == 5 and len(set(produced)) == 1,
+            f"{len(set(produced))} different records"
+            if len(produced) == 5
+            else "not compared: not every run produced a nonempty, verified record",
         )
         c.check(
             f"{name}: five separate runs give the same lag, statistic, p and decision",
             values == {(0, expected["lag"], expected["p"], values and next(iter(values))[3], True)},
-            f"{sorted(values)}",
+            f"{sorted(values, key=repr)}",
         )
+        if digests[0] is None:
+            # The relocation and tamper checks need the first record; without it they fail here
+            # with the reason instead of stopping the whole check with an exception.
+            reason = "not checked: the first run left no readable record"
+            moved_label = f"{name}: a record moved to another folder still replays (MATCH)"
+            c.check(moved_label, False, reason)
+            c.check(f"{name}: a record with one altered byte is refused", False, reason)
+            continue
 
         # A record keeps its meaning when the user moves it somewhere else.
         moved = work / "moved" / f"{name}.sqlite"
         moved.parent.mkdir(exist_ok=True)
         shutil.copy2(work / f"repeat0-{name}.sqlite", moved)
-        code, out = c.cli(
-            f"{name}-moved", "verify", str(moved), "--max-bytes", CAP, "--replay", cwd=work
-        )
+        code, out = c.cli(f"{name}-moved", "verify", str(moved), "--max-bytes", CAP, "--replay")
         summary = (out or {}).get("data") or {}
         c.check(
             f"{name}: a record moved to another folder still replays (MATCH) with the same p",
@@ -335,9 +397,13 @@ def _precision(c: Checker, work: Path) -> None:
         tampered = work / f"tampered-{name}.sqlite"
         raw = bytearray((work / f"repeat0-{name}.sqlite").read_bytes())
         marker = raw.find(b'"p_value"')
-        raw[marker] = ord("q") if marker >= 0 else raw[marker]
+        if marker < 0:
+            c.check(f"{name}: a record with one altered byte is refused", False,
+                    "not checked: the record has no p_value field to alter")
+            continue
+        raw[marker] = ord("q")
         tampered.write_bytes(bytes(raw))
-        code, out = c.cli(f"{name}-tampered", "verify", str(tampered), "--max-bytes", CAP, cwd=work)
+        code, out = c.cli(f"{name}-tampered", "verify", str(tampered), "--max-bytes", CAP)
         c.check(
             f"{name}: a record with one altered byte is refused",
             marker >= 0 and code == 4,
@@ -345,21 +411,28 @@ def _precision(c: Checker, work: Path) -> None:
         )
 
 
-def _installation(c: Checker, work: Path) -> None:
+def _installation(c: Checker) -> None:
     """Report where SelCal is imported from: an installed package, not the source folder."""
-    code, out = c.cli("installation", "doctor", cwd=work)
+    code, out = c.cli("installation", "doctor")
     data = (out or {}).get("data") or {}
-    done = subprocess.run(
-        [sys.executable, "-c", "import selcal, sys; print(selcal.__file__); print(sys.version)"],
-        capture_output=True,
-        text=True,
-        errors="replace",
-        check=False,
-        cwd=work,
+    # ASCII-escaped output: the location may contain non-ASCII folder names on any code page.
+    done = c.run(
+        "installation-location",
+        [
+            sys.executable,
+            "-c",
+            "import selcal, sys; print(ascii(selcal.__file__)); print(ascii(sys.version))",
+        ],
     )
-    location = done.stdout.strip().splitlines()[0] if done.stdout.strip() else "unknown"
+    lines = done.stdout.decode("ascii", "backslashreplace").splitlines() if done else []
+    try:
+        location = str(ast.literal_eval(lines[0])) if done and done.returncode == 0 else "unknown"
+    except (IndexError, ValueError, SyntaxError):
+        location = "unknown"
     (c.out / "installation.txt").write_text(
-        f"selcal.__file__: {location}\n{done.stdout}\n", encoding="utf-8", newline="\n"
+        f"selcal.__file__: {location}\n" + "\n".join(lines) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
     c.check(
         "SelCal is imported from an installed package, not from a source checkout",
@@ -371,6 +444,22 @@ def _installation(c: Checker, work: Path) -> None:
         code == 0 and data.get("record_round_trip") == "PASS",
         f"exit {code}, {data.get('record_round_trip')}",
     )
+
+
+def _launch_folder(out: Path) -> Path:
+    """A short, new, empty folder for child processes (see the module docstring).
+
+    The system temporary folder is used unless its path is long (a very deep TEMP); then the root
+    of the output drive is tried. The chosen path and its length are written to launch.json.
+    """
+    temporary = Path(tempfile.gettempdir())
+    candidates = [temporary] if len(str(temporary)) <= 120 else [Path(out.anchor), temporary]
+    for parent in candidates:
+        try:
+            return Path(tempfile.mkdtemp(prefix="selcal-", dir=parent)).resolve()
+        except OSError:
+            continue
+    return Path(tempfile.mkdtemp(prefix="selcal-")).resolve()
 
 
 def main() -> int:
@@ -392,14 +481,39 @@ def main() -> int:
     parser.add_argument("--out", type=Path, help="parent folder for results (default: here)")
     args = parser.parse_args()
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    # Child commands run inside work; output paths must not be reinterpreted from there.
+    # --out (relative or not) is resolved against the caller's folder before anything starts.
     out = (args.out or Path.cwd()).resolve() / f"selcal-acceptance-{stamp}"
     out.mkdir(parents=True, exist_ok=False)
     work = out / "work"
     work.mkdir()
-    c = Checker(out)
+    launch = _launch_folder(out)
+    checker = Checker(out, launch)
+    try:
+        return _main(args, out, work, checker)
+    except Exception as error:  # every stop ends with a summary and a nonzero exit
+        traceback.print_exc()
+        first = f"{type(error).__name__}: {error}"
+        checker.check("acceptance check finished without an unexpected error", False, first)
+        verdict = f"{len(checker.failures)} FAILED ({checker.count} checks; stopped early)"
+        print(verdict, flush=True)
+        with (out / "summary.txt").open("a", encoding="utf-8", newline="\n") as fh:
+            fh.write(verdict + "\n")
+        return 1
+    finally:
+        try:
+            launch.rmdir()  # only if still empty; anything left there stays for inspection
+        except OSError:
+            pass
+
+
+def _main(args: argparse.Namespace, out: Path, work: Path, c: Checker) -> int:
     print(f"SelCal acceptance check; results in {out}", flush=True)
-    code, report = c.cli("doctor", "doctor", cwd=work)
+    (out / "launch.json").write_text(
+        json.dumps({"cwd": str(c.launch), "cwd_length": len(str(c.launch))}, indent=1) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    code, report = c.cli("doctor", "doctor")
     data = (report or {}).get("data") or {}
     c.check(
         "doctor exit 0, records can be saved and read back",
@@ -415,7 +529,7 @@ def main() -> int:
     if args.precision:
         _precision(c, work)
     if args.installed:
-        _installation(c, work)
+        _installation(c)
     verdict = "ALL PASSED" if not c.failures else f"{len(c.failures)} FAILED"
     print(f"{verdict} ({c.count} checks)", flush=True)
     with (out / "summary.txt").open("a", encoding="utf-8", newline="\n") as fh:

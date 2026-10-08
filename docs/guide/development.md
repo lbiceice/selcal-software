@@ -20,7 +20,7 @@ Each configuration recorded **3,466 passed / 20 skipped / 0 failed**; the four c
 repeat the same product suite, not four disjoint sets of tests. Saved-record readback and
 installed-package workflows passed in those returned logs, after the September 24 readback
 failure. That R5 return covers the earlier 40-file product source; the subsequent
-checkpoint kernel, store and recovery changes have not had a new native Windows execution.
+checkpoint kernel, store and recovery changes were not covered by that R5 return.
 Of the 20 skips, 13 symlink-permission tests remain unverified on Windows; the other seven
 concern platform-specific capabilities. Visible browser rendering, an independent user evaluation,
 new machines without Python, and other filesystems remain unverified. These results do not
@@ -45,6 +45,30 @@ saved results byte for byte. In the built-in Codex browser on that host, creatin
 running, reporting, previewing and resuming a job worked; the three file downloads were not
 confirmed, and browser downloads in ordinary Chrome or Edge, offline use with the proxy off, other
 Windows machines and machines without Python remain unverified.
+
+The 2026-10-07 R19 v2 return from that Windows 11 Pro AMD64 host used CPython 3.12.0,
+NumPy 2.4.6 and Windows PowerShell 5.1. The shipped full suite recorded **4,509 passed,
+6 failed, 0 errors and 73 skipped** (4,588 unique test cases); the final automated gate
+correctly failed even though its seven mandatory native nodes passed. The six failures
+were traced to nested test executables with 260- or 279-character paths that Windows
+could not start. A short-physical-path diagnostic passed the relevant eight tests;
+that diagnostic did not replace or repair the original full-suite result.
+
+The same return confirmed ordinary offline installation without upgrading its bundled
+pip, installed-file identity, and three actual local in-app-browser workflows. Each of
+those workflows saved HTML, SQLite and evidence ZIP downloads; downloaded SQLite replay,
+HTML regeneration, ZIP integrity and independently recounted CSV summaries agreed.
+A separate 499-repeat run was cancelled and resumed, replaying 24 retained repeats and
+adding 475. A malformed JSON plan was refused. These are one host, one Python version
+and one browser-engine result, not ordinary Chrome/Edge or macOS matrix acceptance.
+
+The original saved-download acceptance script also failed when reading the live Windows
+workspace's byte-locked runtime lock. This is distinct from downloaded-content failure.
+The local repair candidate addresses test paths, offline saved-download checking and
+packaging documentation; its new results must be recorded separately after execution.
+See [saved-download verification](saved-download-verification.md) for the stopped-helper
+contract. Offline use with the proxy off, native console Ctrl-C, ordinary Chrome/Edge,
+desktop Excel and other machines still require their own execution evidence.
 
 ## Project status
 
@@ -143,10 +167,9 @@ it does not use the separate offline Windows end-user handoff or require Git met
 The test environment installs the project's declared `dev`, `docs` and `benchmark`
 extras so the complete shipped suite, including its plotting tests, can run.
 No preinstalled uv is needed: the runner installs and records `uv==0.7.6` privately in
-the test environment for the existing pressure test, placing its tools first on PATH.
-The two runtime-only environments do not receive uv. The pressure test's temporary
-subprocess keeps its own fixed NumPy 2.4.6 and psutil 7.0.0, including when the outer
-test environment uses NumPy 1.26.4; that subtest is not minimum-NumPy validation.
+the test environment for the lock check, placing its tools first on PATH.
+The two runtime-only environments do not receive uv. The pressure test runs with the test
+environment's own Python, using psutil 7.0.0 from the `dev` extra and that lane's NumPy.
 It builds the current working tree, checks complete product inventories, tests the extracted
 source package, then separately installs the wheel and source package with runtime dependencies
 and runs the shipped examples and ordinary installed acceptance checks.
@@ -155,14 +178,16 @@ and runs the shipped examples and ordinary installed acceptance checks.
 JUnit and installation checks remain in `evidence/`, distributions in `artifacts/`, and temporary
 environments in `work/`. Failed steps retain their output and return nonzero. Existing destinations
 are refused. The workflow uploads only evidence and artifacts, not work environments or private
-research documents. Its declared matrix covers Linux/macOS/Windows and the three Python versions
+research documents. It runs only when started by hand (workflow_dispatch) and runs no matrix job
+while the repository is private. Its declared matrix covers Linux/macOS/Windows and the three Python versions
 with NumPy 2.4.6, plus Linux/Python 3.11 with NumPy 1.26.4. A workflow definition or local successful
 run does not establish that hosted CI or native Windows has run. This ordinary artifact acceptance
 does not close the separate full-engineering, research-value or release gates.
 
 The F5A artifact-first CI route passed local acceptance on 2026-09-30. That local
-run exercised the built wheel and extracted source package; hosted CI and a new
-native Windows run of the current product remain unverified.
+run exercised the built wheel and extracted source package. Hosted CI remained unverified
+in that return; the later R19 v2 native Windows result is recorded separately above and
+does not establish that the hosted artifact-first matrix ran.
 
 ## Run with containers
 

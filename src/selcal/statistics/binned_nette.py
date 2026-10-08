@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
-from decimal import Context, Decimal
+from decimal import ROUND_HALF_EVEN, Context, Decimal, DivisionByZero, InvalidOperation, Overflow
 from fractions import Fraction
 from functools import lru_cache
 from numbers import Integral
@@ -63,7 +63,18 @@ def _validated_code_vector(values: object, *, name: str) -> IntegerCodeVector:
     return cast(IntegerCodeVector, array)
 
 
-_DECIMAL = Context(prec=50)
+# Every Decimal operation goes through this one fully specified context: the caller's thread
+# context (precision, rounding, traps) and the process-wide DefaultContext never take part.
+_DECIMAL = Context(
+    prec=50,
+    rounding=ROUND_HALF_EVEN,
+    Emin=-999999,
+    Emax=999999,
+    capitals=1,
+    clamp=0,
+    flags=[],
+    traps=[InvalidOperation, DivisionByZero, Overflow],
+)
 
 
 @lru_cache(maxsize=65536)
@@ -122,19 +133,18 @@ def conditional_mutual_information(
     # 50-digit decimal arithmetic and rounded once. np.log and np.sum gave last-bit differences
     # between NumPy versions and CPUs (hosted CI, 2026-10-06), so the statistic is now the same
     # on every platform, as lagged Pearson is with correctly rounded sums.
-    weighted = sum(
-        (
-            Decimal(int(joint)) * _log_ratio(int(joint) * int(z_count), int(xz) * int(yz))
-            for joint, z_count, xz, yz in zip(
-                joint_counts,
-                z_counts[representative_z],
-                xz_counts[representative_xz],
-                yz_counts[representative_yz],
-                strict=True,
-            )
-        ),
-        Decimal(0),
-    )
+    weighted = Decimal(0)
+    for joint, z_count, xz, yz in zip(
+        joint_counts,
+        z_counts[representative_z],
+        xz_counts[representative_xz],
+        yz_counts[representative_yz],
+        strict=True,
+    ):
+        term = _DECIMAL.multiply(
+            Decimal(int(joint)), _log_ratio(int(joint) * int(z_count), int(xz) * int(yz))
+        )
+        weighted = _DECIMAL.add(weighted, term)
     information = float(_DECIMAL.divide(weighted, Decimal(int(x_array.size))))
 
     if not math.isfinite(information):

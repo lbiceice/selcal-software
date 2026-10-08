@@ -15,6 +15,10 @@ stderr as raw bytes, the first failure stays the reported error, and input ident
 re-read in ``finally`` (unchanged, changed or unreadable are recorded separately). The receipt is
 UTF-8 JSON and the exit code is nonzero unless every step and expectation passed. This checks
 software execution and arithmetic on the given cases, not the cases' scientific assumptions.
+
+All paths are resolved against the caller's folder first; child commands then start in a short,
+new, empty folder (recorded as ``launch_cwd``), because Windows cannot start a process whose
+working directory is longer than about 258 characters, and a deep ``--out`` is common there.
 """
 
 from __future__ import annotations
@@ -23,8 +27,10 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 SCHEMA = "selcal.research-case-flow.v2"
@@ -53,6 +59,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=float, default=STEP_TIMEOUT_SECONDS)
     args = parser.parse_args(argv)
     out = args.out.absolute()
+    args.data, args.expect = args.data.absolute(), args.expect.absolute()
+    if os.sep in args.python or (os.altsep and os.altsep in args.python):
+        args.python = os.path.abspath(args.python)
     try:
         out.mkdir(parents=True, exist_ok=False)
     except OSError as error:
@@ -66,9 +75,14 @@ def main(argv: list[str] | None = None) -> int:
         "steps": [],
         "cases": {},
         "first_error": None,
+        "launch_cwd": None,
         "scientific_assumptions": "NOT_VERIFIED",
         "historical_execution_authenticated": False,
     }
+
+    # Short, new and empty; -I keeps it off sys.path anyway. Removed at the end if still empty.
+    launch = Path(tempfile.mkdtemp(prefix="selcal-")).resolve()
+    receipt["launch_cwd"] = str(launch)
 
     def save() -> None:
         (out / "receipt.json").write_text(
@@ -97,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
                 (out / entry["stdout"]).open("wb") as stdout,
                 (out / entry["stderr"]).open("wb") as stderr,
             ):
-                child = subprocess.Popen(command, stdout=stdout, stderr=stderr, cwd=out)
+                child = subprocess.Popen(command, stdout=stdout, stderr=stderr, cwd=launch)
                 try:
                     code = child.wait(timeout=args.timeout)
                 except subprocess.TimeoutExpired as error:
@@ -210,9 +224,15 @@ def main(argv: list[str] | None = None) -> int:
                 "first_error": receipt["first_error"],
                 "receipt": str(out / "receipt.json"),
             },
-            ensure_ascii=False,
+            # R17 item 8: the console line is machine-read under any console code page
+            # (cp936 on a Chinese Windows), so it is ASCII-escaped; receipt.json stays UTF-8.
+            ensure_ascii=True,
         )
     )
+    try:
+        launch.rmdir()
+    except OSError:
+        pass
     return 0 if receipt["status"] == "PASS" else 1
 
 

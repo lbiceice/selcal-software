@@ -5,6 +5,9 @@ if (fragment.has("token")) sessionStorage.setItem("selcal-token", fragment.get("
 history.replaceState(null, "", location.pathname);
 const sessionToken = sessionStorage.getItem("selcal-token") || "";
 let inputBytes = null, selectedId = null, viewedId = null, latestJob = null, busy = false, revision = 0;
+// A job running anywhere in this workspace, possibly started from another window or tab; the
+// helper runs one operation at a time, so starting actions wait for it (R17 item 11).
+let workspaceActive = null;
 let viewGeneration = 0, pollInFlight = false, actionSerial = 0;
 // R12 download retest: a 0 ms revocation, or the next action revoking every URL, could end a
 // download before the browser read the Blob. Download URLs now live for a bounded time.
@@ -36,14 +39,18 @@ function notice(message, error = false) {
 async function api(path, options = {}) {
   const response = await fetch(path, {...options, headers: {"X-SelCal-Token": sessionToken, ...(options.headers || {})}, cache: "no-store"});
   const value = await response.json();
-  if (!response.ok) throw new Error(value.error || `Operation refused (${response.status}).`);
+  if (!response.ok) {
+    const error = new Error(value.error || `Operation refused (${response.status}).`);
+    error.status = response.status;
+    throw error;
+  }
   return value;
 }
 function buttons() {
   for (const id of ["example", "input-file", "config-file", "format", "source-column", "target-column", "candidates", "statistic", "null-model", "statistic-params", "null-params", "selection", "replicates", "alpha", "tolerance", "seed", "budget", "override", "config-text", "saved-jobs"]) $(id).disabled = busy;
   const running = latestJob && latestJob.state === "running";
   $("create").disabled = busy || !inputBytes;
-  $("validate").disabled = busy || !selectedId || running || !latestJob || latestJob.input_status !== "complete";
+  $("validate").disabled = busy || !selectedId || running || workspaceActive !== null || !latestJob || latestJob.input_status !== "complete";
   $("run").disabled = $("validate").disabled || (latestJob && ["complete", "not_evaluable", "interrupted"].includes(latestJob.state));
   $("resume").disabled = $("validate").disabled;
   $("verify").disabled = $("validate").disabled || !latestJob.record_target || !latestJob.record_target.available;
@@ -201,13 +208,29 @@ async function refreshJobs() {
     const option = document.createElement("option"); option.value = job.id; option.textContent = `${job.created_at} · ${job.state} · ${job.id.slice(0, 8)}`; $("saved-jobs").append(option);
   }
   $("saved-jobs").value = chosen || "";
+  // R17 Windows item 2: another window may start or finish the job shown here. The list carries
+  // the same job details, so show them when they differ; the detail poll then follows a run.
+  const viewed = chosen && result.jobs.find((job) => job.id === chosen);
+  if (viewed && latestJob && latestJob.id === chosen && JSON.stringify(viewed) !== JSON.stringify(latestJob)) showJob(viewed);
+  const active = result.jobs.find((job) => job.state === "running" && job.id !== viewedId) || null;
+  if (active && !workspaceActive) notice(`Another operation is running in this workspace (job ${active.id.slice(0, 8)}, possibly in another window or tab). Starting actions are available again when it finishes.`);
+  else if (!active && workspaceActive) notice("The other operation in this workspace finished; actions are available again.");
+  workspaceActive = active;
+  buttons();
 }
 async function perform(work) {
   const generation = ++viewGeneration, owner = ++actionSerial;
   clearCheckDisplay();
   busy = true; buttons();
   try { await work(generation); } catch (error) {
-    if (generation === viewGeneration) { clearArtifactDisplay(); notice(error.message, true); }
+    if (generation !== viewGeneration) return;
+    if (error.status === 409) {
+      // Usually another window's operation; what this page showed earlier stays valid.
+      notice(`This workspace is busy with another operation (possibly in another window or tab): ${error.message} Saved results are unchanged (reselect the job to show them); retry when it finishes.`, true);
+      refreshJobs().catch(() => {});
+      return;
+    }
+    clearArtifactDisplay(); notice(error.message, true);
   } finally { if (owner === actionSerial) { busy = false; buttons(); } }
 }
 async function loadExample(generation = viewGeneration) {
@@ -298,6 +321,16 @@ for (const [id, kind, filename] of [["preview-report", "report", "report.html"],
       if (!current()) return;
       throw new Error(value.error || `Download refused (${response.status}).`);
     }
+    if (response.status === 204) {
+      // A download manager (for example IDM) answered this request itself and saved the file;
+      // the page received no bytes, so it can neither check nor hand anything over. Not retried.
+      const label = {record: "result record", report: "HTML report", bundle: "evidence ZIP"}[kind];
+      const reference = kind === "record" ? latestJob?.record_target?.reference : latestJob?.artifacts?.[kind]?.reference;
+      const operation = /^[0-9a-f]{32}$/.test(reference?.operation_id || "") ? reference.operation_id : "";
+      const original = operation ? `jobs/${jobId}/operations/${operation}/${filename}` : `jobs/${jobId}/operations/ (the newest ${filename})`;
+      $("artifact-status").textContent = `A download manager took over the ${label} request (HTTP 204), for example IDM; this page received no bytes to check, so it did not hand anything to the browser and its saved state is unknown here. The server re-checks the saved original before every download. Look for the file ending in ${filename} in the download manager's completed list and save folder (ZIP files may be under Downloads\\Compressed), and check it with the saved-download checker. If nothing was saved, copy the checked original from the workspace folder: ${original}.`;
+      return;
+    }
     const blob = await response.blob();
     if (!current()) return;
     if (id === "preview-report") {
@@ -346,8 +379,15 @@ for (const [id, kind, filename] of [["preview-report", "report", "report.html"],
       const receipt = digest === null ? "the SHA-256 was not checked in this browser (Web Crypto unavailable), only the size" : "the bytes this page received have that SHA-256";
       if (current()) $("artifact-status").textContent = `Handed ${name} to the browser. The server re-checked the saved artifact and stated ${blob.size} bytes, SHA-256 ${expectedSha}; ${receipt}. This page cannot see whether the file was saved: look for ${name} with ${blob.size} bytes in the browser's downloads list. If a download manager such as IDM is installed, also check its completed list and save folder (ZIP files may be saved under Downloads\\Compressed).${saved ? ` If no download appears anywhere, copy the checked original from the workspace folder: ${saved}.` : ""}`;
     }
+    // Restore the saved observation after a successful read-only action. Its existing scope
+    // labels still apply; a download is not a new verification operation or scientific replay.
+    if (current() && latestJob?.id === jobId) showJob(latestJob);
   }));
 }
+setInterval(async () => {
+  if (pollInFlight || busy) return;
+  try { await refreshJobs(); } catch (error) { /* the next refresh retries; status polling reports errors */ }
+}, 3000);
 setInterval(async () => {
   if (pollInFlight || busy || !viewedId || !latestJob || latestJob.state !== "running") return;
   const id = viewedId, generation = viewGeneration;

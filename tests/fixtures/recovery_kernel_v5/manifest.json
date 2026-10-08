@@ -1,5 +1,5 @@
 {
- "scope": "Kernel regression references after R16 (2026-10-06): exceedance tie rule (64 scaled ULP) and exact rational NetTE edges; only the binned case changed (E 2 -> 3, a ln2/4 tie lost to rounding, and its preprocessing identity). Not independent scientific validation",
+ "scope": "Kernel regression references after the 2026-10-06 NetTE change: information from exact counts with 50-digit decimal logarithms in a private context; only the binned case changed (its preprocessing identity and NetTE statistic values by at most one scaled ULP; E, p and decisions unchanged). Not independent scientific validation",
  "cases": {
   "sampled_pearson": {
    "file": "sampled_pearson.json",
@@ -83,8 +83,8 @@
   },
   "binned": {
    "file": "binned.json",
-   "bytes": 9865,
-   "sha256": "b5cde7fe4240ee547f3c5f20dafe8dd5633af0b9dfd1779fb49a98530c1e115e",
+   "bytes": 10249,
+   "sha256": "6aa57559d3e41dfb419dc2a32f92beb0054c2542516ef0e38ab6172001f8ef29",
    "source": [
     0,
     1,

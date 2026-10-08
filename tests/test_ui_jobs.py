@@ -279,3 +279,39 @@ def test_an_interrupted_admission_does_not_lock_healthy_jobs_out(physical_tmp):
     finally:
         reopened.close()
     assert {p.name: p.read_bytes() for p in orphan.iterdir()} == before  # left untouched
+
+
+def test_file_browser_metadata_files_do_not_lock_out_a_workspace(physical_tmp):
+    """R19 v3 review: a jobs/ folder viewed in Finder gained .DS_Store and every job was refused."""
+    app = jobs_module()
+    workspace = physical_tmp / "work"
+    manager = app.JobManager(workspace)
+    inp, request = admission(physical_tmp)
+    job_id = manager.admit(request)["id"]
+    manager.upload(job_id, io.BytesIO(inp.read_bytes()), inp.stat().st_size)
+    manager.close()
+    (workspace / ".DS_Store").write_bytes(b"\0" * 8)
+    (workspace / "jobs" / ".DS_Store").write_bytes(b"\0" * 8)
+    (workspace / "jobs" / "desktop.ini").write_bytes(b"[.ShellClassInfo]\r\n")
+    reopened = app.JobManager(workspace)
+    try:
+        assert reopened.get(job_id)["id"] == job_id
+        assert reopened.unloadable_jobs == []
+    finally:
+        reopened.close()
+    # Only those exact names as regular files are ignored; anything else still refuses.
+    (workspace / "jobs" / "notes.txt").write_bytes(b"x")
+    with pytest.raises(app.UIError, match="Unexpected workspace member"):
+        app.JobManager(workspace)
+
+
+def test_new_workspace_folder_already_holding_metadata_file_is_initialised(physical_tmp):
+    app = jobs_module()
+    workspace = physical_tmp / "fresh"
+    workspace.mkdir()
+    (workspace / ".DS_Store").write_bytes(b"\0" * 8)
+    manager = app.JobManager(workspace)
+    try:
+        assert (workspace / "workspace.json").is_file() and (workspace / "jobs").is_dir()
+    finally:
+        manager.close()

@@ -31,10 +31,16 @@
       "familyName": "Liang",
       "email": "vincentdsnail@gmail.com",
       "@id": "https://orcid.org/0009-0007-5344-0594",
-      "affiliation": {
-        "@type": "Organization",
-        "name": "School of AI Engineering, Guangzhou College of Technology and Business"
-      }
+      "affiliation": [
+        {
+          "@type": "Organization",
+          "name": "School of AI Engineering, Guangzhou College of Technology and Business, Guangzhou, China"
+        },
+        {
+          "@type": "Organization",
+          "name": "Faculty of Fine and Applied Arts, Khon Kaen University, Khon Kaen, Thailand"
+        }
+      ]
     }
   ],
   "codeRepository": "https://github.com/lbiceice/selcal-software",

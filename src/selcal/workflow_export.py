@@ -30,6 +30,7 @@ from selcal.workflow_store import RecordStoreError, _is_link, read_record
 
 _SCHEMA = "selcal.evidence-bundle.v1"
 _IDENTITIES = ("raw_input_sha256", "semantic_input_sha256", "scientific_plan_sha256")
+_OS_METADATA = frozenset({".DS_Store", "desktop.ini", "Thumbs.db"})
 _FIXED_NAMES = frozenset(
     {
         "request.json",
@@ -382,6 +383,12 @@ def verify_export(bundle_directory: str | Path, *, max_bytes: int) -> dict[str, 
         raise ExportError("invalid_bundle")
     names: set[str] = set()
     for path in directory.iterdir():
+        if path.name in _OS_METADATA:
+            # A regular .DS_Store / desktop.ini / Thumbs.db written by the file browser is not
+            # part of the bundle; links or odd types under those names are still unexpected.
+            info = path.lstat()
+            if not _is_link(info) and stat.S_ISREG(info.st_mode):
+                continue
         names.add(path.name)
         if len(names) > 11:
             raise ExportError("invalid_bundle")

@@ -639,3 +639,21 @@ def test_failed_write_retains_directory_and_close_failure_is_not_success(
     else:
         with pytest.raises(api.ExportError):
             api.verify_export(target, max_bytes=CAP)
+
+
+def test_file_browser_metadata_file_in_bundle_is_ignored_but_links_are_not(tmp_path):
+    """R19 v3 review: opening the bundle folder in Finder made verify-export refuse it."""
+    from _platform_support import symlink_or_skip
+
+    api, output, summary, _, _ = bundle(tmp_path)
+    (output / ".DS_Store").write_bytes(b"\0" * 8)
+    (output / "desktop.ini").write_bytes(b"[.ShellClassInfo]\r\n")
+    assert api.verify_export(output, max_bytes=CAP) == summary
+    (output / "notes.txt").write_bytes(b"x")
+    with pytest.raises(api.ExportError, match="exactly its eleven"):
+        api.verify_export(output, max_bytes=CAP)
+    (output / "notes.txt").unlink()
+    (output / "desktop.ini").unlink()
+    symlink_or_skip(output / "desktop.ini", output / "manifest.json")
+    with pytest.raises(api.ExportError, match="exactly its eleven"):
+        api.verify_export(output, max_bytes=CAP)

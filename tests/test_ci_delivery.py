@@ -434,13 +434,61 @@ def test_workflow_contract_and_sdist_inclusion() -> None:
         "scripts/ci_check.py",
         "/evidence",
         "/artifacts",
-        "push:",
-        "pull_request:",
         "workflow_dispatch:",
     ):
         assert required in text, required
     for forbidden in ("pull_request_target", "continue-on-error", "secrets.", "/work\n"):
         assert forbidden not in text
+    # Manual runs only, and no matrix job in a private repository (2026-10-06 local-first
+    # plan). The whole file is frozen so that another trigger, a moved job guard or a smaller
+    # matrix cannot pass; an intended workflow change must update this contract on review.
+    expected_workflow = """name: Artifact-first CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  artifacts:
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13"]
+        numpy: ["2.4.6"]
+        include:
+          - os: ubuntu-latest
+            python: "3.11"
+            numpy: "1.26.4"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install build frontend
+        run: python -I -m pip install "build>=1.2,<2"
+      - name: Build and check delivered artifacts
+        run: python -I scripts/ci_check.py "${{ runner.temp }}/selcal-ci" \
+--numpy-version "${{ matrix.numpy }}"
+      - name: Preserve results and built artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: selcal-${{ matrix.os }}-py${{ matrix.python }}-np${{ matrix.numpy }}
+          path: |
+            ${{ runner.temp }}/selcal-ci/evidence
+            ${{ runner.temp }}/selcal-ci/artifacts
+          if-no-files-found: warn
+          retention-days: 14
+"""
+    assert text == expected_workflow
     assert "include .github/workflows/ci.yml" in (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
     assert "Artifact-first CI" in public_documentation_text(ROOT)
 

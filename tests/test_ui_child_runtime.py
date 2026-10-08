@@ -71,7 +71,7 @@ def windows_runtime(monkeypatch, folder):
 
 
 @pytest.mark.parametrize(
-    "isolated,ignore_environment,flags", [(0, 0, []), (0, 1, ["-E"]), (1, 1, ["-I"])])
+    "isolated,ignore_environment,flags", [(0, 0, ["-P"]), (0, 1, ["-E", "-P"]), (1, 1, ["-I"])])
 def test_start_owns_native_image_and_passes_copied_venv_environment(
     physical_tmp, monkeypatch, isolated, ignore_environment, flags
 ):
@@ -121,7 +121,7 @@ def test_non_windows_preserves_defaults_without_native_query(monkeypatch, platfo
 
 @pytest.mark.parametrize("platform", ["darwin", "linux"])
 @pytest.mark.parametrize(
-    "isolated,ignore_environment,flags", [(0, 0, []), (0, 1, ["-E"]), (1, 1, ["-I"])])
+    "isolated,ignore_environment,flags", [(0, 0, ["-P"]), (0, 1, ["-E", "-P"]), (1, 1, ["-I"])])
 def test_non_windows_start_preserves_parent_policy(
     physical_tmp, monkeypatch, platform, isolated, ignore_environment, flags
 ):
@@ -250,7 +250,9 @@ finally:
     print(result.stdout)
     assert observed["parentflags"] == {
         "isolated": int(parent_flag == "-I"), "ignore_environment": 1}
-    assert observed["actualargv"][1:5] == [parent_flag, "-m", "selcal", "validate"]
+    # -I already leaves the working directory off sys.path; with -E the child adds -P (R17).
+    flags = [parent_flag] if parent_flag == "-I" else [parent_flag, "-P"]
+    assert observed["actualargv"][1:len(flags) + 4] == [*flags, "-m", "selcal", "validate"]
     assert observed["state"] == "validated"
     assert dict(os.environ) == before
 

@@ -236,8 +236,8 @@ class Run:
             if Path(info["path"]) != uv or info["version"].split()[:2] != ["uv", "0.7.6"]:
                 raise ValueError("private test uv origin or version mismatch")
             self.receipt["test_tools"] = {"uv": info | digest(uv.read_bytes()),
-                "pressure_dependency_boundary": "existing pressure subprocess pins NumPy 2.4.6 "
-                "and psutil 7.0.0 independently of the outer NumPy matrix"}
+                "pressure_dependency_boundary": "the pressure test runs with this test "
+                "environment's own Python: psutil 7.0.0 from the dev extra and this lane's NumPy"}
             self.save()
             self.command(name + "-tool-freeze", [python, "-I", "-m", "pip", "freeze", "--all"],
                          self.out)

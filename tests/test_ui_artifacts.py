@@ -456,9 +456,22 @@ def test_nested_record_reference_is_strict_not_numeric_equality(physical_tmp, ac
         # after 120 s, on eviction or on page close"; header, Crypto and view-change edges.
         "url_cap_and_pagehide",
         "missing_headers",
+        "intercepted_204",
+        "busy_409",
+        "other_running",
+        "same_running_validated",
+        "same_running_complete",
         "no_crypto",
         "digest_error",
         "switch_during_digest",
+        *[
+            f"summary_{outcome}_{operation}_{control}"
+            for outcome in ("success", "failed")
+            for operation in ("run", "verify")
+            for control in (
+                "preview-report", "download-report", "download-record", "download-bundle"
+            )
+        ],
     ],
 )
 def test_actual_javascript_artifact_async_guards(scenario):
@@ -526,7 +539,14 @@ const example=EXAMPLE,scenario=SCENARIO;
 const saved={id:'saved',state:'complete',input_status:'complete',format:'csv',config_text:example,
  max_bytes:'1048576',allow_unattainable:false,record_target:{available:true},
  artifacts:{report:{available:true},bundle:{available:true}},message:'saved'};
+if(scenario.startsWith('summary_')){
+ saved.operation=scenario.split('_')[2];
+ saved.result={command:saved.operation,data:{status:'complete',selected_candidate:2,
+  p_value:0.015,reject_null:true,verification_scope:'input_plan_result_consistency',
+  replay:'NOT_PERFORMED',historical_execution_authenticated:false}};
+}
 const newer={...saved,id:'new-job',message:'new job selected'};
+let otherRunning=false,sameJob=null;
 const response=x=>({ok:true,json:async()=>x});
 const context=vm.createContext({URLSearchParams,Blob,Object,JSON,console,
  URL:{createObjectURL(b){urls.push(b);return 'blob:checked-'+urls.length},
@@ -545,18 +565,24 @@ const context=vm.createContext({URLSearchParams,Blob,Object,JSON,console,
  document:{getElementById:element,createElement,body},
  fetch:async(path,options)=>{
   if(path==='/api/example')return response({input_text:'x,y\n0,1\n',config_text:example});
-  if(path==='/api/jobs')return response({jobs:[saved]});
+  if(path==='/api/jobs')return response({jobs:scenario==='other_running'&&otherRunning?
+   [saved,{...saved,id:'b'.repeat(32),state:'running'}]:[sameJob||saved]});
   if(path==='/api/jobs/new-job')return response(newer);
   posted={path,options};assert.equal(options.headers['X-SelCal-Token'],'local');
   assert(!path.includes('?')&&!path.includes('token'));
   if(scenario==='late_action_error')return new Promise((_,reject)=>{
    release=()=>reject(new Error('old action error'))});
-  if(scenario==='fresh_error')return {ok:false,json:async()=>({error:'changed bytes refused'})};
+  if(scenario==='fresh_error'||scenario.startsWith('summary_failed_'))
+   return {ok:false,json:async()=>({error:'changed bytes refused'})};
+  if(scenario==='busy_409')return {ok:false,status:409,json:async()=>(
+   {error:'One operation is active, or the helper is shutting down.'})};
   if(scenario==='late_error')return {ok:false,json:()=>new Promise(resolve=>{
    release=()=>resolve({error:'old error'})})};
   if(scenario==='late_text_after_new_preview')return {ok:true,blob:async()=>
    path==='/api/jobs/saved/download/report'?{text:()=>new Promise(resolve=>{
     release=()=>resolve('<h1>old</h1>')})}:new Blob(['<h1>new checked</h1>'])};
+  if(scenario==='intercepted_204')return {ok:true,status:204,headers:{get:()=>null},
+   blob:async()=>new Blob([])};
   const kind=path.split('/').pop(),body='<h1>checked</h1>';
   const file={record:'result.sqlite',report:'report.html',bundle:'evidence.zip'}[kind];
   const sha=require('node:crypto').createHash('sha256').update(body).digest('hex');
@@ -602,7 +628,42 @@ context.saved=saved;vm.runInContext(fs.readFileSync(SCRIPT,'utf8'),context);
  vm.runInContext('invalidate()',context);
  for(const id of controls)assert(element(id).disabled);
  vm.runInContext('selectedId=viewedId="saved";showJob(saved)',context);
- if(scenario==='success'){
+ if(scenario.startsWith('summary_')){
+  const [,outcome,operation,control]=scenario.split('_');
+  const summary=()=>element('result-summary').options.map(node=>node.textContent);
+  const before=summary(),terminal=element('terminal').textContent;
+  const verification=element('verification-status').textContent;
+  assert(before.includes('0.015')&&before.includes('2')&&before.includes('true'));
+  const pending=element(control).handlers.click();
+  assert.equal(summary().length,0,'Pending artifact requests must clear earlier success');
+  assert(element('verification-status').textContent.includes('No current'));
+  await pending;
+  if(outcome==='success'){
+   assert.deepEqual(summary(),before,'A successful read-only action must restore saved facts');
+   assert.equal(element('terminal').textContent,terminal);
+   assert.equal(element('verification-status').textContent,verification);
+   if(operation==='verify')
+    assert(verification.includes('not current-byte verification')&&
+     verification.includes('No replay')&&verification.includes('not authenticated'));
+   else assert(verification.includes('Availability is not verification'));
+   const status=element('artifact-status').textContent;
+   assert(status.includes(control==='preview-report'?'Checked HTML snapshot':'Handed'));
+   assert.equal(downloads.length,control==='preview-report'?0:1);
+   await vm.runInContext('refreshJobs()',context);
+   assert.deepEqual(summary(),before,'An unchanged job refresh must retain the restored facts');
+   assert.equal(element('artifact-status').textContent,status);
+   element('budget').handlers.input();
+   assert.equal(summary().length,0,'Editing after a download must still invalidate facts');
+   assert.equal(element(control).disabled,true);
+  }else{
+   assert.equal(summary().length,0,'A refused artifact must not restore earlier success');
+   assert(element('verification-status').textContent.includes('No current'));
+   assert(element('terminal').textContent.includes('No result for this request'));
+   assert(element('notice').textContent.includes('changed bytes refused'));
+   assert.equal(element('report-preview').srcdoc,'');
+   assert.equal(downloads.length,0);assert.equal(urls.length,0);
+  }
+ }else if(scenario==='success'){
   async function preview(){
    const previous=element('report-preview');
    await element('preview-report').handlers.click();
@@ -647,6 +708,8 @@ context.saved=saved;vm.runInContext(fs.readFileSync(SCRIPT,'utf8'),context);
   assert.equal(urls.length,0);
   assert(element('notice').textContent.includes('Download not handed to the browser'),
    element('notice').textContent);
+  assert.equal(element('result-summary').options.length,0);
+  assert(element('verification-status').textContent.includes('No current'));
  }else if(scenario==='deferred_revoke'){
   await element('download-bundle').handlers.click();
   assert.equal(downloads.length,1);assert.equal(revoked.length,0,'revoked at click time');
@@ -681,6 +744,66 @@ context.saved=saved;vm.runInContext(fs.readFileSync(SCRIPT,'utf8'),context);
     element('notice').textContent);
   }
   assert.equal(downloads.length,0);assert.equal(urls.length,0);
+  assert.equal(element('result-summary').options.length,0);
+  assert(element('verification-status').textContent.includes('No current'));
+ }else if(scenario==='intercepted_204'){
+  // R17 item 9: a download manager (IDM) answered the page's request with 204 and saved the
+  // file itself. The page received nothing to check, so it must neither claim a handover nor
+  // report a failed download, and must not retry by itself.
+  const before=element('notice').textContent;
+  await element('download-bundle').handlers.click();
+  assert.equal(downloads.length,0);assert.equal(urls.length,0);
+  assert.equal(element('notice').textContent,before,'an interception is not an error');
+  const status=element('artifact-status').textContent;
+  assert(status.startsWith(
+   'A download manager took over the evidence ZIP request (HTTP 204)'),status);
+  assert(status.includes('this page received no bytes to check')&&
+   !status.includes('Handed'),status);
+  assert(status.includes(`jobs/saved/operations/`)&&status.includes('completed list'),status);
+  assert.equal(element('result-summary').options.length,0);
+  assert(element('verification-status').textContent.includes('No current'));
+ }else if(scenario==='busy_409'){
+  // R17 item 11: another window's operation makes the server refuse with 409; the page says so
+  // and that saved results are unchanged, instead of reporting a failure of this job.
+  await element('report').handlers.click();
+  const text=element('notice').textContent;
+  assert(text.includes('This workspace is busy with another operation')&&
+   text.includes('One operation is active')&&text.includes('Saved results are unchanged')&&
+   text.includes('retry when it finishes'),text);
+ }else if(scenario==='other_running'){
+  // R17 item 11: a job running in another window disables starting actions in this one.
+  otherRunning=true;await vm.runInContext('refreshJobs()',context);
+  for(const id of ['validate','run','resume','verify','report','export'])
+   assert.equal(element(id).disabled,true,id);
+  assert(element('notice').textContent.includes('Another operation is running in this workspace'),
+   element('notice').textContent);
+  otherRunning=false;await vm.runInContext('refreshJobs()',context);
+  for(const id of ['verify','report','export'])assert.equal(element(id).disabled,false,id);
+  assert(element('notice').textContent.includes('actions are available again'),
+   element('notice').textContent);
+ }else if(scenario.startsWith('same_running')){
+  // R17 Windows item 2: another window starts the job shown here. The list already said
+  // "running" but the details stayed validated/complete, so starting actions stayed enabled.
+  if(scenario==='same_running_validated'){
+   context.validated={...saved,state:'validated',artifacts:{},
+    record_target:{available:false,reason:'No saved record yet.'}};
+   vm.runInContext('showJob(validated)',context);
+  }
+  const ready=scenario==='same_running_complete'?['verify','report','export']:['validate','run'];
+  for(const id of ready)assert.equal(element(id).disabled,false,'before: '+id);
+  sameJob={...saved,state:'running',operation:'run',message:'Running in another window.'};
+  await vm.runInContext('refreshJobs()',context);
+  assert.equal(vm.runInContext('latestJob.state',context),'running');
+  for(const id of ['validate','run','resume','verify','report','export'])
+   assert.equal(element(id).disabled,true,'while running: '+id);
+  assert.equal(element('cancel').disabled,false);
+  sameJob={...saved,state:'complete',operation:'run',record_target:{available:true},
+   artifacts:{report:{available:true},bundle:{available:true}},message:'Finished elsewhere.'};
+  await vm.runInContext('refreshJobs()',context);
+  assert.equal(vm.runInContext('latestJob.state',context),'complete');
+  for(const id of ['verify','report','export'])
+   assert.equal(element(id).disabled,false,'after: '+id);
+  assert.equal(element('run').disabled,true,'a complete job is not run again');
  }else if(scenario==='no_crypto'){
   await element('download-bundle').handlers.click();
   assert.equal(downloads.length,1,'without Web Crypto a size-checked file is still delivered');
@@ -692,6 +815,8 @@ context.saved=saved;vm.runInContext(fs.readFileSync(SCRIPT,'utf8'),context);
   assert.equal(downloads.length,0);assert.equal(urls.length,0);
   assert(element('notice').textContent.includes('could not compute the SHA-256')&&
    element('notice').textContent.includes('digest unavailable'),element('notice').textContent);
+  assert.equal(element('result-summary').options.length,0);
+  assert(element('verification-status').textContent.includes('No current'));
  }else if(scenario==='switch_during_digest'){
   const before=element('artifact-status').textContent;
   const pending=element('download-bundle').handlers.click();

@@ -42,18 +42,12 @@ def test_pressure_harness_runs_read_only_with_fresh_workers(tmp_path: Path) -> N
     assert module.RSS_SAMPLE_INTERVAL_SECONDS == 0.001
 
     output = tmp_path / "pressure.json"
+    # R17 item 3 (R16 Windows return): uv's temporary overlay wrote a UTF-8 .pth that CPython
+    # 3.12 read with the cp936 locale when the environment path had Chinese characters. The
+    # harness now runs with the test environment's own Python; psutil comes from the dev extra.
     completed = subprocess.run(
         [
-            "uv",
-            "run",
-            "--no-project",
-            "--python",
             sys.executable,
-            "--with",
-            "numpy==2.4.6",
-            "--with",
-            "psutil==7.0.0",
-            "python",
             "-B",
             str(PRESSURE_HARNESS),
             "--formats",
@@ -90,8 +84,7 @@ def test_pressure_harness_runs_read_only_with_fresh_workers(tmp_path: Path) -> N
     ]
     assert invocation["cwd"] == str(REPOSITORY_ROOT)
     assert Path(invocation["executable"]).is_absolute()
-    # uv may remove its temporary interpreter as soon as the child exits.
-    # Its identity must be observed inside that process, not checked afterward.
+    # The identity is observed inside the measured process, not checked afterward.
     assert invocation["executable_exists_during_run"] is True
     executable_sha = invocation["executable_sha256"]
     assert len(executable_sha) == 64

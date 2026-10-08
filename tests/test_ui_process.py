@@ -27,14 +27,17 @@ def test_ui_help_is_real():
     assert b"--host" not in result.stdout
 
 
-def wait_job(manager, job_id, timeout=30):
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        value = manager.get(job_id)
-        if value["state"] != "running":
-            return value
-        time.sleep(0.02)
-    raise AssertionError("UI child did not finish")
+def wait_job(manager, job_id, stall=60.0):
+    """Wait for the job to leave "running"; fail only if its progress stops advancing.
+
+    R17 items 4-5: each replicate the interface runs is a fully synchronized checkpoint commit,
+    which is slow on some Windows disks; a fixed 30 s deadline could not tell slow from stuck.
+    """
+    from test_ui_http import wait_while_progressing
+
+    return wait_while_progressing(lambda: manager.get(job_id),
+                                  lambda job: job["state"] != "running",
+                                  stall=stall, what="UI child")
 
 
 @pytest.mark.parametrize("form", ["csv", "npz"])
@@ -597,3 +600,33 @@ def test_child_ignores_a_shadowing_module_in_the_helper_working_directory(
     assert not marker.exists()
     assert finished["state"] == "complete", finished.get("message")
     assert finished["result"]["command"] == "run"
+
+
+def test_child_keeps_the_helper_working_directory_and_drops_it_from_sys_path(
+    physical_tmp, monkeypatch
+):
+    # R17 item 2 (R16 Windows return): a deep operation folder as the child's working directory
+    # stopped CreateProcess on Windows (259 characters failed with long paths enabled). The child
+    # keeps the helper's working directory; -P (or -I) keeps that directory off sys.path.
+    app = jobs_module()
+    seen = {}
+    real = app.subprocess.Popen
+
+    def recording(argv, **options):
+        seen.setdefault("calls", []).append((list(argv), dict(options)))
+        return real(argv, **options)
+
+    monkeypatch.setattr(app.subprocess, "Popen", recording)
+    inp, request = admission(physical_tmp)
+    manager = app.JobManager(physical_tmp / "work")
+    try:
+        job = manager.admit(request)
+        manager.upload(job["id"], io.BytesIO(inp.read_bytes()), inp.stat().st_size)
+        manager.start(job["id"], "run")
+        finished = wait_job(manager, job["id"])
+    finally:
+        manager.close()
+    assert finished["state"] == "complete", finished.get("message")
+    (argv, options), = seen["calls"]
+    assert "cwd" not in options
+    assert argv[1:4] in (["-I", "-m", "selcal"], ["-P", "-m", "selcal"], ["-E", "-P", "-m"])
