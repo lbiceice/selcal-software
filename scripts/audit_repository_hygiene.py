@@ -28,6 +28,7 @@ REPOSITORY_ONLY_TEST_FILES = frozenset(
         "tests/test_manuscript_number_binding.py",
         "tests/test_windows_runner_delivery.py",
         "tests/test_windows_package_delivery.py",
+        "tests/test_macos_user_entries.py",
         "tests/test_m6_pearson_pair_comparison.py",
         "tests/test_build_public_release.py",
     }

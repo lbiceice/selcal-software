@@ -78,6 +78,8 @@ exclude tests/test_manuscript_number_binding.py
 exclude tests/test_windows_runner_delivery.py
 # internal Windows delivery runner and bundle checks
 exclude tests/test_windows_package_delivery.py
+# internal macOS user entry checks (read docs/status/p3_macos_user)
+exclude tests/test_macos_user_entries.py
 # development-only research preparation script
 exclude tests/test_m6_pearson_pair_comparison.py
 # internal release builder and release-inventory assertions

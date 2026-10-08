@@ -6,7 +6,9 @@ import importlib
 import importlib.util
 import io
 import json
+import os
 import sqlite3
+import stat
 from pathlib import Path
 
 import numpy as np
@@ -641,19 +643,62 @@ def test_failed_write_retains_directory_and_close_failure_is_not_success(
             api.verify_export(target, max_bytes=CAP)
 
 
-def test_file_browser_metadata_file_in_bundle_is_ignored_but_links_are_not(tmp_path):
-    """R19 v3 review: opening the bundle folder in Finder made verify-export refuse it."""
-    from _platform_support import symlink_or_skip
-
+@pytest.mark.parametrize("name", [".DS_Store", "desktop.ini", "Thumbs.db"])
+def test_regular_file_browser_metadata_in_bundle_is_ignored(tmp_path, name):
+    """Ordinary metadata remains covered when file-symlink creation is unavailable."""
     api, output, summary, _, _ = bundle(tmp_path)
-    (output / ".DS_Store").write_bytes(b"\0" * 8)
-    (output / "desktop.ini").write_bytes(b"[.ShellClassInfo]\r\n")
+    metadata = output / name
+    metadata.write_bytes(b"ordinary file browser metadata\n")
     assert api.verify_export(output, max_bytes=CAP) == summary
     (output / "notes.txt").write_bytes(b"x")
     with pytest.raises(api.ExportError, match="exactly its eleven"):
         api.verify_export(output, max_bytes=CAP)
     (output / "notes.txt").unlink()
-    (output / "desktop.ini").unlink()
-    symlink_or_skip(output / "desktop.ini", output / "manifest.json")
-    with pytest.raises(api.ExportError, match="exactly its eleven"):
-        api.verify_export(output, max_bytes=CAP)
+    assert api.verify_export(output, max_bytes=CAP) == summary
+    assert metadata.read_bytes() == b"ordinary file browser metadata\n"
+
+
+@pytest.mark.parametrize("name", [".DS_Store", "desktop.ini", "Thumbs.db"])
+def test_file_browser_metadata_file_symlink_in_bundle_is_refused(tmp_path, name):
+    api, output, _, _, _ = bundle(tmp_path)
+    link = output / name
+    target = output / "manifest.json"
+    before = target.read_bytes()
+    symlink_or_skip(link, target)
+    try:
+        with pytest.raises(api.ExportError, match="exactly its eleven"):
+            api.verify_export(output, max_bytes=CAP)
+    finally:
+        link.unlink()
+    assert not os.path.lexists(link)
+    assert target.read_bytes() == before
+
+
+@pytest.mark.skipif(os.name != "nt", reason="native Windows junction test")
+@pytest.mark.parametrize("name", [".DS_Store", "desktop.ini", "Thumbs.db"])
+def test_file_browser_metadata_native_junction_in_bundle_is_refused(tmp_path, name):
+    """Exercise a real junction without enabling file-symlink privileges."""
+    import _winapi
+
+    api, output, _, _, _ = bundle(tmp_path)
+    target = tmp_path / "junction-target"
+    target.mkdir()
+    sentinel = target / "untouched.txt"
+    sentinel.write_bytes(b"keep the junction target unchanged\n")
+    before = {path.name: path.read_bytes() for path in target.iterdir()}
+    link = output / name
+    try:
+        _winapi.CreateJunction(str(target), str(link))
+    except (AttributeError, OSError) as error:
+        pytest.skip(f"native Windows junction unavailable: {error}")
+    try:
+        assert link.lstat().st_reparse_tag == stat.IO_REPARSE_TAG_MOUNT_POINT
+        with pytest.raises(api.ExportError, match="exactly its eleven"):
+            api.verify_export(output, max_bytes=CAP)
+        assert {path.name: path.read_bytes() for path in target.iterdir()} == before
+    finally:
+        # Remove only this named junction; never recursively traverse its target.
+        assert link.lstat().st_reparse_tag == stat.IO_REPARSE_TAG_MOUNT_POINT
+        link.rmdir()
+    assert not os.path.lexists(link)
+    assert {path.name: path.read_bytes() for path in target.iterdir()} == before

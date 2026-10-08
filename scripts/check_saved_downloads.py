@@ -39,6 +39,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import lzma
 import os
 import re
 import shutil
@@ -46,6 +47,7 @@ import stat
 import subprocess
 import sys
 import zipfile
+import zlib
 from pathlib import Path
 
 SCHEMA = "selcal.saved-downloads-check.v2"
@@ -256,30 +258,40 @@ def _cli(python: str, out: Path, label: str, *arguments: object) -> dict:
 
 def _unpack(archive: Path, target: Path) -> None:
     try:
-        zipped = zipfile.ZipFile(archive)
-    except (zipfile.BadZipFile, zipfile.LargeZipFile) as error:
-        # A partial or corrupt download is a failed file, not a checker crash.
+        with zipfile.ZipFile(archive) as zipped:
+            members = zipped.infolist()
+            names = [member.filename for member in members]
+            if (
+                len(members) != ZIP_MEMBERS
+                or len(set(names)) != ZIP_MEMBERS
+                or sum(member.file_size for member in members) > ZIP_TOTAL
+                or any(
+                    member.is_dir()
+                    or not name
+                    or name in {".", ".."}
+                    or any(c in name for c in "/\\:\x00")
+                    or stat.S_IFMT(member.external_attr >> 16) not in {0, stat.S_IFREG}
+                    or member.flag_bits & (1 | 32 | 64)
+                    or member.compress_type not in {
+                        zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED,
+                        zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA,
+                    }
+                    for member, name in zip(members, names, strict=True)
+                )
+            ):
+                raise CheckFailed("ZIP member count, names, types, sizes or encoding are unsafe")
+            # Validate all bounded bytes, including each CRC, before creating an output folder.
+            # ZIP_TOTAL caps this capture at 32 MiB; failed archives leave no partial extraction.
+            captured = [(member.filename, zipped.read(member)) for member in members]
+    except (
+        zipfile.BadZipFile, zipfile.LargeZipFile, EOFError, OSError,
+        zlib.error, lzma.LZMAError,
+    ) as error:
+        # Bad central directories AND malformed member streams are failed files, not crashes.
         raise CheckFailed(f"not a readable ZIP archive: {error}") from error
-    with zipped:
-        members = zipped.infolist()
-        names = [member.filename for member in members]
-        if (
-            len(members) != ZIP_MEMBERS
-            or len(set(names)) != ZIP_MEMBERS
-            or sum(member.file_size for member in members) > ZIP_TOTAL
-            or any(
-                member.is_dir()
-                or not name
-                or name in {".", ".."}
-                or any(c in name for c in "/\\:\x00")
-                or stat.S_IFMT(member.external_attr >> 16) not in {0, stat.S_IFREG}
-                for member, name in zip(members, names, strict=True)
-            )
-        ):
-            raise CheckFailed("ZIP member count, names, types or sizes are unsafe")
-        target.mkdir()
-        for member in members:
-            (target / member.filename).write_bytes(zipped.read(member))
+    target.mkdir()
+    for name, raw in captured:
+        (target / name).write_bytes(raw)
 
 
 def _locate(snapshot: Path, job8: str, op8: str, base: str) -> tuple[str, str]:

@@ -90,6 +90,14 @@ python -m pip install .
 
 This installs the checked-out candidate snapshot from source. SelCal 0.1.0 is not published on PyPI.
 
+Ready-to-run user packages for day-to-day use are attached to the GitHub release of each version:
+`SelCal_0.1.0_Windows_user_package.zip` (Windows AMD64, PowerShell 5.1 or 7) and
+`SelCal_0.1.0_macOS_user_package.zip` (macOS, Apple Silicon or Intel). Each holds the same tested
+wheel, the NumPy 2.4.6 wheels for CPython 3.11-3.13, an offline install script, an example runner
+and a one-page guide; after the download no network access is needed. They are not a substitute
+for this source install when developing or testing. README.md is embedded in the wheel metadata,
+so this note lives here to keep the released wheel byte-identical to the natively tested one.
+
 ### Reproduce the locked development environment
 
 The checked-in `uv.lock` resolves the runtime, development, documentation, and benchmark

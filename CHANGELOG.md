@@ -120,6 +120,24 @@ number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
   commands start in the system temporary folder, or at the root of the output drive when that
   folder's path is very long.
 
+### Fixed after the R21 Windows test (2026-10-09)
+
+- The saved-download checker also reports a ZIP whose central directory reads but whose member data
+  does not (CRC or decompression error, encrypted, patched-data or unsupported compression) as a
+  failed file in its receipt, and reads every member within the 32 MiB cap before it creates the
+  output folder, so a failed archive leaves no partial extraction.
+- The test that covered file-browser metadata in an evidence bundle is split so that the regular-file
+  part no longer skips with the file-symlink part on a Windows account without symlink privilege; a
+  native junction case was added. Product files are unchanged.
+- The test session refuses to start on POSIX when SIGINT is ignored in the pytest process (a
+  background job of a non-interactive shell inherits that), because the real-helper cancel tests
+  send SIGINT and would otherwise fail two seconds late with a misleading message.
+- macOS user entry points (`INSTALL_MACOS.sh`, `RUN_EXAMPLE.sh`, a one-page guide) mirror the
+  Windows ones: offline installation from verified wheels into `.selcal-user/venv`, installed files
+  compared with the wheel, `READY.json` bound to the delivery manifest, and the two examples
+  checked for lag 2, p = 0.015 and 0.03 with replay MATCH. Tested on CPython 3.11, 3.12 and 3.13
+  (arm64).
+
 ### Fixed after the R19 v3 Windows acceptance review (2026-10-08)
 
 - A `.DS_Store`, `desktop.ini` or `Thumbs.db` file that a file browser writes into the workspace, its

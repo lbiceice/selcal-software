@@ -40,6 +40,9 @@ REPOSITORY_ONLY_TEST_FILES = {
     ),
     "tests/test_windows_runner_delivery.py": "internal Windows delivery runner and bundle checks",
     "tests/test_windows_package_delivery.py": "internal Windows delivery runner and bundle checks",
+    "tests/test_macos_user_entries.py": (
+        "internal macOS user entry checks (read docs/status/p3_macos_user)"
+    ),
     "tests/test_m6_pearson_pair_comparison.py": "development-only research preparation script",
     "tests/test_build_public_release.py": (
         "internal release builder and release-inventory assertions"
