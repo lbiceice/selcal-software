@@ -512,8 +512,8 @@ def test_package_facing_text_uses_candidate_status_and_retains_every_hold(
         assert "EVIDENCE BUNDLES: CONTENT-CHECKED / UI: PARTIAL_UI_BASIC_LOOP" in upper
         assert "SELCAL EXPORT RUN.SQLITE EVIDENCE --MAX-BYTES 8388608" in upper
         assert "SELCAL VERIFY-EXPORT EVIDENCE --MAX-BYTES 8388608" in upper
-        assert "PUBLIC RELEASE PENDING" in upper
-        assert "DOI: PENDING" in upper and "NOT SUBMITTED" in upper
+        assert "RELEASE: 0.1.0 TAGGED V0.1.0" in upper
+        assert "DOI: ZENODO" in upper and "NOT SUBMITTED" in upper
     else:
         assert "NOT DUE" in upper
         assert "HISTORICAL RECORD" in upper and "SUPERSEDED" in upper

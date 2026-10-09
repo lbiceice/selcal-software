@@ -3,10 +3,11 @@
 All notable changes to SelCal are listed here. Versions follow [Semantic Versioning](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 0.1.0 - unreleased
+## 0.1.0 - 2026-10-09
 
-First public version, in preparation. No public release, tag or DOI exists yet; the version
-number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
+First public version: tag `v0.1.0` of <https://github.com/lbiceice/selcal-software>, with the
+Windows and macOS user packages attached to the GitHub release and the source archived on Zenodo
+(DOI in `CITATION.cff`).
 
 ### Added
 

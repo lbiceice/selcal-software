@@ -263,9 +263,9 @@ def test_readme_states_implemented_and_absent_product_boundaries() -> None:
         "SCIENTIFIC EVIDENCE: BOUNDED SYNTHETIC STUDIES EXECUTED / "
         "GENERAL IMPACT AND INDEPENDENT-USER BENEFIT HOLD"
     ) in readme_text
-    # Licence is chosen; public source release, DOI and manuscript submission remain open.
+    # Licence is chosen; v0.1.0 is tagged and archived; manuscript submission remains open.
     assert "LICENSE: BSD-3-CLAUSE" in readme_text
-    assert "DOI: PENDING" in readme_text
+    assert "DOI: ZENODO, SEE CITATION.cff" in readme_text
     assert "MANUSCRIPT: IN PREPARATION, NOT SUBMITTED" in readme_text
     assert (
         "LOCAL RESUME: REPLAY_BEFORE_CONTINUE / EVIDENCE BUNDLES: CONTENT-CHECKED / "
@@ -273,13 +273,14 @@ def test_readme_states_implemented_and_absent_product_boundaries() -> None:
     ) in readme_text
     assert (
         "input/validate/run/resume/result-content-check loop plus reports, evidence export\n"
-        "and checked downloads. F4C integration is locally accepted on macOS; container,\n"
-        "renewed native Windows and release gates remain separate."
+        "and checked downloads. F4C integration is locally accepted on macOS; "
+        "the native Windows run of\n"
+        "the released package is recorded separately in `docs/status/`."
         in readme_text
     )
     assert "selcal export run.sqlite evidence --max-bytes 8388608" in readme_text
     assert "selcal verify-export evidence --max-bytes 8388608" in readme_text
-    assert "PUBLIC RELEASE PENDING" in readme_text
+    assert "RELEASE: 0.1.0 TAGGED v0.1.0 (2026-10-09)" in readme_text
     assert "RESUME, EVIDENCE BUNDLES, UI: NOT DUE" not in readme_text
     normalized = " ".join(readme_text.split())
     assert "The 2026-10-07 R19 v2 return" in normalized

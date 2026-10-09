@@ -72,12 +72,13 @@ desktop Excel and other machines still require their own execution evidence.
 
 ## Project status
 
-Version 0.1.0 is a candidate for the first tagged release. The historical internal milestone label
+Version 0.1.0 is the first tagged release (tag `v0.1.0`, 2026-10-09). The historical internal milestone label
 `M0-M2 IMPLEMENTATION CANDIDATE / FINAL VERIFICATION PENDING` is not a current test-count report.
 The R5 and R11 native Windows results above cover their own candidates and environments only.
 The private full-checkout suite also includes research, manuscript and governance tests; its
-denominator is not the product source-package denominator. Final candidate packaging, the
-remaining Windows checks, an independent user evaluation and public release are separate gates.
+denominator is not the product source-package denominator. The native Windows run of the
+released package, an independent user evaluation and later platform checks are recorded in
+`docs/status/` as they happen; they do not change the released bytes.
 
 ## Install from source
 

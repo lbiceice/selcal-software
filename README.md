@@ -39,13 +39,13 @@ shown in [docs/guide/interface.md](docs/guide/interface.md).
 
 ## Quick start
 
-The source repository is currently private; the clone commands below require authorized access.
-There is no public install route for the exact evaluated revision yet. For day-to-day use without a
-source checkout, each release is accompanied by two ready-to-run user packages,
-`SelCal_0.1.0_Windows_user_package.zip` and `SelCal_0.1.0_macOS_user_package.zip` (the same wheel,
-the NumPy 2.4.6 wheels, an offline installer, an example runner and a one-page guide); they are
-attached to the GitHub release once the repository is public and are distributed privately until
-then. See [Install from source](docs/guide/development.md#install-from-source). The source route
+The source repository is public at <https://github.com/lbiceice/selcal-software>; the released
+revision is tag `v0.1.0`, archived on Zenodo (the DOI is recorded in `CITATION.cff` and
+`codemeta.json`). For day-to-day use without a source checkout, the release carries two
+ready-to-run user packages, `SelCal_0.1.0_Windows_user_package.zip` and
+`SelCal_0.1.0_macOS_user_package.zip` (the same wheel, the NumPy 2.4.6 wheels, an offline
+installer, an example runner, the saved-download checker and a one-page guide); their SHA-256
+digests are in the release notes. See [Install from source](docs/guide/development.md#install-from-source). The source route
 below uses a fresh virtual environment (standard CPython 3.11-3.13; free-threaded builds are not
 supported). The macOS/Linux instructions have local test evidence. Native Windows results are
 available for the limited configurations recorded in
@@ -164,20 +164,20 @@ checked before any public research-reproducibility claim or SoftwareX submission
 
 ## Citation, licence and support
 
-- Cite the software with `CITATION.cff`. A DOI for the exact public version is pending.
+- Cite the software with `CITATION.cff`; it names the Zenodo DOI of the archived release v0.1.0.
 - Licence: BSD 3-Clause (`LICENSE.txt`; `Licence.txt` is an identical copy required by SoftwareX).
-- The historical GitHub repository is currently private; public issues are unavailable.
-  Until a clean public repository is verified, use the maintainer contact in `CITATION.cff`.
+- Questions and problems: the issue tracker of the public repository, or the maintainer contact
+  in `CITATION.cff`.
 
 ## Project status
 
-Version 0.1.0 is a candidate for the first tagged release. The historical internal milestone label
+Version 0.1.0 is the first tagged release (`v0.1.0`, 2026-10-09). The historical internal milestone label
 `M0-M2 IMPLEMENTATION CANDIDATE / FINAL VERIFICATION PENDING` is not a current test-count report;
 the full status record is in [docs/guide/development.md](docs/guide/development.md#project-status).
 
 `SCIENTIFIC EVIDENCE: BOUNDED SYNTHETIC STUDIES EXECUTED / GENERAL IMPACT AND INDEPENDENT-USER BENEFIT HOLD`
 
-`LICENSE: BSD-3-CLAUSE / RELEASE: 0.1.0 LOCAL CANDIDATE (PUBLIC RELEASE PENDING) / DOI: PENDING /
+`LICENSE: BSD-3-CLAUSE / RELEASE: 0.1.0 TAGGED v0.1.0 (2026-10-09) / DOI: ZENODO, SEE CITATION.cff /
 MANUSCRIPT: IN PREPARATION, NOT SUBMITTED`
 
 `LOCAL RESUME: REPLAY_BEFORE_CONTINUE / EVIDENCE BUNDLES: CONTENT-CHECKED / UI: PARTIAL_UI_BASIC_LOOP`
@@ -187,5 +187,5 @@ verified and replayed. Opt-in checkpoints support local same-environment recover
 replaying the retained prefix before continuing. Portable evidence bundles can be
 exported and checked without replay. The graphical interface implements the basic
 input/validate/run/resume/result-content-check loop plus reports, evidence export
-and checked downloads. F4C integration is locally accepted on macOS; container,
-renewed native Windows and release gates remain separate.
+and checked downloads. F4C integration is locally accepted on macOS; the native Windows run of
+the released package is recorded separately in `docs/status/`.
