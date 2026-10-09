@@ -142,6 +142,10 @@ number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
 - User guides: install once and start directly afterwards; the complete launch URL rule when
   switching browsers; the connection line and retry; default downloads; never delete
   `writer.lock`. README and the development guide describe the user packages consistently.
+- Both user packages now ship `check_saved_downloads.py`, and the guides give the exact command
+  to check the three files the browser saved (stopped helper, an empty folder with the three
+  files, `--count 3`): byte equality with the workspace original, record replay, ZIP content and
+  a regenerated-report comparison; exit 0 and `"status": "PASS"` mean all three are correct.
 
 ### Fixed after the R21 Windows test (2026-10-09)
 

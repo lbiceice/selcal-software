@@ -96,8 +96,9 @@ Ready-to-run user packages for day-to-day use accompany each version:
 GitHub release once the repository is public; until then they are distributed privately, and the
 release status is stated in `CHANGELOG.md` and the README. Each holds the same tested wheel, the
 NumPy 2.4.6 wheels for standard CPython 3.11-3.13 (free-threaded builds are refused by the
-installers before pip runs), an offline install script, an example runner and a one-page guide;
-after the download no network access is needed. The installers accept any installed standard
+installers before pip runs), an offline install script, an example runner, the saved-download
+checker `check_saved_downloads.py` (see [saved-download verification](saved-download-verification.md))
+and a one-page guide; after the download no network access is needed. The installers accept any installed standard
 64-bit CPython 3.11-3.13; for a machine without one, the guides name one fixed official download
 (Python 3.13.16) whose exact-patch acceptance is recorded per platform in `docs/status/` and is not
 claimed before it has been run. They are not a substitute for this source install when developing
