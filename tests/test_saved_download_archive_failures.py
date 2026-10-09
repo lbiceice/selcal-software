@@ -146,3 +146,85 @@ def test_historical_member_crc_error_returns_cli_receipt_and_cleans_snapshot(bui
     assert receipt["snapshot_cleanup"]["manager_close"] == "PASS"
     assert (_tree(workspace), _tree(tmp_path / "saved")) == before
     assert not list(tmp_path.glob("out-*/*-unpacked"))
+
+
+def require_unsupported_zip_version(archive: Path, version: int) -> None:
+    raw = bytearray(archive.read_bytes())
+    central = raw.index(b"PK\x01\x02")
+    struct.pack_into("<H", raw, 4, version)
+    struct.pack_into("<H", raw, central + 6, version)
+    archive.write_bytes(raw)
+
+
+@pytest.mark.parametrize("version", [64, 99])
+def test_unsupported_required_zip_version_is_bounded_before_output_creation(tmp_path, version):
+    module = checker()
+    archive = archive_fixture(tmp_path)
+    require_unsupported_zip_version(archive, version)
+    before = archive.read_bytes()
+    target = tmp_path / "unpacked"
+    with pytest.raises(module.CheckFailed, match="unsupported ZIP archive"):
+        module._unpack(archive, target)
+    assert not target.exists()
+    assert archive.read_bytes() == before
+
+
+def test_unrelated_constructor_runtime_error_is_not_disguised(tmp_path, monkeypatch):
+    module = checker()
+    archive = archive_fixture(tmp_path)
+
+    def defect(*args, **kwargs):
+        raise RuntimeError("unrelated constructor programming defect")
+
+    monkeypatch.setattr(module.zipfile, "ZipFile", defect)
+    target = tmp_path / "unpacked"
+    with pytest.raises(RuntimeError, match="unrelated constructor programming defect"):
+        module._unpack(archive, target)
+    assert not target.exists()
+
+
+def test_unrelated_member_notimplemented_error_is_not_disguised(tmp_path, monkeypatch):
+    module = checker()
+    archive = archive_fixture(tmp_path)
+
+    def defect(*args, **kwargs):
+        raise NotImplementedError("unrelated member programming defect")
+
+    monkeypatch.setattr(module.zipfile.ZipFile, "read", defect)
+    target = tmp_path / "unpacked"
+    with pytest.raises(NotImplementedError, match="unrelated member programming defect"):
+        module._unpack(archive, target)
+    assert not target.exists()
+
+
+def test_historical_unsupported_zip_version_returns_cli_receipt_and_cleans_snapshot(
+    built, tmp_path
+):
+    from selcal.ui_jobs import JobManager
+
+    workspace, job_id, _ = _copy(built, tmp_path)
+    saved = _save_current(workspace, job_id, tmp_path / "saved")
+    manager = JobManager(workspace)
+    try:
+        generated(manager, job_id, "export")
+    finally:
+        manager.close()
+    historical_op = saved["bundle"].name.split("-")[2]
+    operations = workspace / "jobs" / job_id / "operations"
+    matching = [path for path in operations.iterdir() if path.name.startswith(historical_op)]
+    assert len(matching) == 1
+    original = matching[0] / "evidence.zip"
+    require_unsupported_zip_version(original, 99)
+    saved["bundle"].write_bytes(original.read_bytes())
+    before = _tree(workspace), _tree(tmp_path / "saved")
+    code, receipt = _check(
+        tmp_path, workspace, tmp_path / "saved", "--allow-history", "--count", "3"
+    )
+    assert code == 1 and receipt["status"] == "FAIL"
+    assert receipt["failure_phase"] == "export_content"
+    assert "unsupported ZIP archive" in receipt["first_error"]
+    assert receipt["inputs_unchanged"] is True
+    assert receipt["snapshot_cleanup"]["status"] == "PASS"
+    assert receipt["snapshot_cleanup"]["manager_close"] == "PASS"
+    assert (_tree(workspace), _tree(tmp_path / "saved")) == before
+    assert not list(tmp_path.glob("out-*/*-unpacked"))

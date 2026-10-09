@@ -22,8 +22,8 @@ button:hover:enabled { background: #18533f; }
 .hint, footer { color: #52675d; font-size: .87rem; }
 summary { cursor: pointer; font-weight: 650; margin: 16px 0; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f4f1; border: 1px solid #d4dfd9; border-radius: 6px; padding: 15px; font-size: .8rem; max-height: 420px; overflow: auto; }
-#notice { border-left: 4px solid #266b55; padding: 10px 14px; background: #edf5ef; overflow-wrap: anywhere; }
-#notice.error { border-color: #aa4b34; background: #fff2ed; }
+#notice, #input-notice, #connection-notice { border-left: 4px solid #266b55; padding: 10px 14px; background: #edf5ef; overflow-wrap: anywhere; }
+#notice.error, #input-notice.error, #connection-notice.error { border-color: #aa4b34; background: #fff2ed; }
 #input-description { overflow-wrap: anywhere; }
 dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; }
 dt { font-weight: 650; } dd { margin: 0; overflow-wrap: anywhere; }

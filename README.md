@@ -40,9 +40,15 @@ shown in [docs/guide/interface.md](docs/guide/interface.md).
 ## Quick start
 
 The source repository is currently private; the clone commands below require authorized access.
-There is no public install route for the exact evaluated revision yet. Use a fresh virtual environment
-(Python 3.11-3.13). The macOS/Linux instructions have local test evidence. Native Windows
-results are available for the limited configurations recorded in
+There is no public install route for the exact evaluated revision yet. For day-to-day use without a
+source checkout, each release is accompanied by two ready-to-run user packages,
+`SelCal_0.1.0_Windows_user_package.zip` and `SelCal_0.1.0_macOS_user_package.zip` (the same wheel,
+the NumPy 2.4.6 wheels, an offline installer, an example runner and a one-page guide); they are
+attached to the GitHub release once the repository is public and are distributed privately until
+then. See [Install from source](docs/guide/development.md#install-from-source). The source route
+below uses a fresh virtual environment (standard CPython 3.11-3.13; free-threaded builds are not
+supported). The macOS/Linux instructions have local test evidence. Native Windows results are
+available for the limited configurations recorded in
 [docs/guide/development.md](docs/guide/development.md#platform-test-record); they are not a claim of
 compatibility with every Windows installation.
 

@@ -258,7 +258,13 @@ def _cli(python: str, out: Path, label: str, *arguments: object) -> dict:
 
 def _unpack(archive: Path, target: Path) -> None:
     try:
-        with zipfile.ZipFile(archive) as zipped:
+        try:
+            zipped = zipfile.ZipFile(archive)
+        except NotImplementedError as error:
+            # ZipFile rejects unsupported required-extraction versions at construction.
+            # Keep this conversion local: unrelated errors from later code must propagate.
+            raise CheckFailed(f"unsupported ZIP archive: {error}") from error
+        with zipped:
             members = zipped.infolist()
             names = [member.filename for member in members]
             if (

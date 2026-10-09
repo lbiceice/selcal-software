@@ -13,6 +13,8 @@
 <main>
   <section aria-labelledby="input-heading">
     <h2 id="input-heading">1. Input and plan</h2>
+    <p id="connection-notice" role="status" aria-live="polite">Connecting to the local helper. Keep the SelCal terminal open.</p>
+    <div class="actions"><button id="retry-connection" type="button">Retry connection (keep input)</button></div>
     <div class="actions"><button id="example" type="button">Load included example</button></div>
     <p id="input-description">Choose an input or load the included example.</p>
     <div class="grid">
@@ -39,7 +41,10 @@
       <label>Configuration text<textarea id="config-text" rows="18" spellcheck="false"></textarea></label>
       <p class="hint">This text is submitted unchanged. Integer values are preserved exactly, including large seeds. Form changes update this text; malformed text must be corrected before admission.</p>
     </details>
-    <div class="actions"><button id="create" type="button">Create job and save input</button></div>
+    <p id="input-notice" role="status" aria-live="polite">Choose an input or load the included example.</p>
+    <div class="actions"><button id="create" type="button" aria-describedby="create-reason" disabled>Create job and save input</button></div>
+    <p id="create-reason" class="hint">First load the included example or choose an input file. Configuration alone is not input data.</p>
+    <noscript><p class="error">This local interface needs JavaScript. Use the SelCal command-line workflow if scripts cannot run in this browser.</p></noscript>
     <p id="selection-note" class="hint">Input and plan become immutable when saved. Any edit requires a new job.</p>
   </section>
   <section aria-labelledby="run-heading">

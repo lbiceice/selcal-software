@@ -1,9 +1,21 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
 const fragment = new URLSearchParams(location.hash.slice(1));
-if (fragment.has("token")) sessionStorage.setItem("selcal-token", fragment.get("token"));
-history.replaceState(null, "", location.pathname);
-const sessionToken = sessionStorage.getItem("selcal-token") || "";
+// Each browser/tab needs the complete launch URL. Storage restrictions must not abort
+// listener registration; a token in this URL remains usable in memory for this page.
+let sessionToken = fragment.get("token") || "", storageWarning = "";
+try {
+  if (fragment.has("token")) sessionStorage.setItem("selcal-token", sessionToken);
+  else sessionToken = sessionStorage.getItem("selcal-token") || "";
+} catch (error) {
+  storageWarning = "This browser cannot retain the local session. Keep this page open; after a reload, reopen the complete launch URL printed in the terminal. No browser security setting needs to be changed.";
+}
+try { history.replaceState(null, "", location.pathname); } catch (error) {
+  storageWarning = "The launch URL could not be hidden in this browser. It contains a local session token: do not share it or include it in screenshots.";
+}
+const MISSING_SESSION = "This browser has no local session. Open a NEW TAB in this browser and paste the COMPLETE launch URL printed in the running SelCal terminal, including its #token= part. If using this same tab, paste the complete URL and then reload. Copying the shortened address from another browser is not enough. Do not send the token to anyone.";
+let connectionError = sessionToken ? "" : MISSING_SESSION;
+let connectionVerified = false;
 let inputBytes = null, selectedId = null, viewedId = null, latestJob = null, busy = false, revision = 0;
 // A job running anywhere in this workspace, possibly started from another window or tab; the
 // helper runs one operation at a time, so starting actions wait for it (R17 item 11).
@@ -35,10 +47,47 @@ function attachmentName(response, fallback) {
 function notice(message, error = false) {
   $("notice").textContent = message;
   $("notice").classList.toggle("error", error);
+  $("input-notice").textContent = message;
+  $("input-notice").classList.toggle("error", error);
+}
+function connectionNotice() {
+  $("connection-notice").textContent = connectionError || storageWarning || (connectionVerified
+    ? "Connected to the local helper. Keep its terminal open while using either browser."
+    : "Checking the local helper connection. Keep its terminal open.");
+  $("connection-notice").classList.toggle("error", Boolean(connectionError));
+}
+async function requestLocal(path, options = {}) {
+  if (!sessionToken) {
+    connectionVerified = false;
+    connectionError = MISSING_SESSION; connectionNotice(); buttons();
+    throw new Error(connectionError);
+  }
+  let response;
+  try {
+    response = await fetch(path, {...options, headers: {"X-SelCal-Token": sessionToken, ...(options.headers || {})}, cache: "no-store"});
+  } catch (error) {
+    connectionVerified = false;
+    connectionError = "Cannot reach the local SelCal helper. Keep its terminal running. If it was stopped or the computer restarted, start it once and reopen the NEW complete launch URL in each browser. Saved jobs are retained; do not delete writer.lock. No input was automatically resubmitted.";
+    connectionNotice(); buttons();
+    throw new Error(connectionError);
+  }
+  if (response.status === 403) {
+    connectionVerified = false;
+    let detail = "Request refused.";
+    try { detail = (await response.json()).error || detail; } catch (error) { /* retain safe fallback */ }
+    connectionError = `${detail} Open a NEW TAB in THIS browser with the exact complete launch URL printed by the running helper. If using this same tab, paste the complete URL and then reload. A copied short address or an old launch URL may not authorize this session. Do not change browser security settings.`;
+    connectionNotice(); buttons();
+    const error = new Error(connectionError); error.status = 403; throw error;
+  }
+  connectionError = ""; connectionVerified = true; connectionNotice(); buttons();
+  return response;
 }
 async function api(path, options = {}) {
-  const response = await fetch(path, {...options, headers: {"X-SelCal-Token": sessionToken, ...(options.headers || {})}, cache: "no-store"});
-  const value = await response.json();
+  const response = await requestLocal(path, options);
+  let value;
+  try { value = await response.json(); } catch (error) {
+    throw new Error("The local helper did not return a readable response. Reopen its current launch URL and retry; no job was automatically resubmitted.");
+  }
   if (!response.ok) {
     const error = new Error(value.error || `Operation refused (${response.status}).`);
     error.status = response.status;
@@ -49,7 +98,14 @@ async function api(path, options = {}) {
 function buttons() {
   for (const id of ["example", "input-file", "config-file", "format", "source-column", "target-column", "candidates", "statistic", "null-model", "statistic-params", "null-params", "selection", "replicates", "alpha", "tolerance", "seed", "budget", "override", "config-text", "saved-jobs"]) $(id).disabled = busy;
   const running = latestJob && latestJob.state === "running";
-  $("create").disabled = busy || !inputBytes;
+  $("create").disabled = busy || !inputBytes || Boolean(connectionError);
+  $("retry-connection").disabled = busy;
+  const reason = busy ? "Please wait for the current request to finish."
+    : connectionError ? "Connection unavailable: follow the message above. Then load the example or choose an input file."
+    : !inputBytes ? "First click Load included example, or choose a CSV/NPZ input file. Selecting configuration JSON or changing a checkbox does not supply input data."
+    : "Input loaded. Create job and save input is available; then Validate and Run.";
+  $("create-reason").textContent = reason;
+  $("create").title = reason;
   $("validate").disabled = busy || !selectedId || running || workspaceActive !== null || !latestJob || latestJob.input_status !== "complete";
   $("run").disabled = $("validate").disabled || (latestJob && ["complete", "not_evaluable", "interrupted"].includes(latestJob.state));
   $("resume").disabled = $("validate").disabled;
@@ -243,6 +299,10 @@ async function loadExample(generation = viewGeneration) {
   invalidate(); notice("Example loaded. Create a job, then validate and run.");
 }
 $("example").addEventListener("click", () => perform(loadExample));
+$("retry-connection").addEventListener("click", () => perform(async () => {
+  await refreshJobs();
+  notice("Connection checked. Your input and plan were kept. Load the included example only if you want to replace them; otherwise continue with your current input.");
+}));
 $("input-file").addEventListener("change", () => {
   inputBytes = $("input-file").files[0] || null;
   $("input-description").textContent = inputBytes ? `${inputBytes.name} · ${inputBytes.size} bytes` : "Choose an input.";
@@ -314,7 +374,7 @@ for (const [id, kind, filename] of [["preview-report", "report", "report.html"],
     const jobId = selectedId;
     if (!jobId) throw new Error("Select an unchanged saved job first.");
     const current = () => generation === viewGeneration && jobId === selectedId && jobId === viewedId;
-    const response = await fetch(`/api/jobs/${jobId}/download/${kind}`, {headers: {"X-SelCal-Token": sessionToken}, cache: "no-store"});
+    const response = await requestLocal(`/api/jobs/${jobId}/download/${kind}`);
     if (!current()) return;
     if (!response.ok) {
       const value = await response.json();
@@ -402,4 +462,17 @@ setInterval(async () => {
     if (generation === viewGeneration && id === viewedId) notice(`Status unavailable: ${error.message}. Completion is unknown.`, true);
   } finally { pollInFlight = false; }
 }, 600);
+connectionNotice();
+// A complete launch URL pasted into a tab that already shows this page only changes the fragment,
+// which does not reload the page (R22 Windows return, G01). Take the token from the new fragment,
+// hide it again and reconnect; a chosen input and plan are kept.
+if (typeof addEventListener === "function") addEventListener("hashchange", () => {
+  const next = new URLSearchParams(location.hash.slice(1)).get("token");
+  if (!next) return;
+  sessionToken = next;
+  try { sessionStorage.setItem("selcal-token", next); } catch (error) { /* usable in memory for this page */ }
+  try { history.replaceState(null, "", location.pathname); } catch (error) { /* the warning text is already set */ }
+  connectionError = ""; connectionVerified = false; connectionNotice(); buttons();
+  perform(async (generation) => { await refreshJobs(); if (generation === viewGeneration && !inputBytes) await loadExample(generation); });
+});
 perform(async (generation) => { await refreshJobs(); if (generation === viewGeneration) await loadExample(generation); });

@@ -9,8 +9,23 @@ taken in Chrome at 1280 × 900.
 selcal ui --workspace my-selcal-workspace
 ```
 
-Keep the terminal open; it prints the full address including the access token. Press Ctrl-C
-there to stop the helper. The workspace folder keeps every input, plan, job and result.
+Keep the terminal open; it prints the full address including the access token (`#token=…`)
+and opens it in the default browser. To use another browser, open a new tab there and paste the
+complete address from the terminal: the page hides the token from the address bar after loading,
+so an address copied from another browser lacks it and is refused. Pasting the complete address
+into a tab that already shows the page is enough: the page takes the new token, reconnects and
+keeps a chosen input and plan. Each start prints a new
+address; do not share it or include it in screenshots. Press Ctrl-C in the terminal to stop the
+helper; starting it again on the same workspace lists the saved jobs. The workspace folder keeps
+every input, plan, job and result.
+
+The first step starts with a connection line. "Connected to the local helper" appears only after
+a real request has been answered. If the line reports a missing session, a refused request (403)
+or an unreachable helper, follow its instruction (reopen the complete address, or check that the
+terminal is still running) and press **Retry connection (keep input)**: it only re-reads the job
+list and never clears the chosen input or plan or submits anything. **Create job and save input**
+stays disabled until an input is loaded; the line under it says why (configuration alone is not
+input data).
 
 ## 1. Input and plan
 

@@ -120,6 +120,29 @@ number in `pyproject.toml` and `CITATION.cff` is the candidate for that release.
   commands start in the system temporary folder, or at the root of the output drive when that
   folder's path is very long.
 
+### Fixed after the R22 Windows test (2026-10-09)
+
+- Local interface: a browser that refuses session storage no longer aborts the page script before
+  the buttons are wired; a token in the launch URL is used from memory in that case. The first step
+  shows a connection line ("Connected" only after a real answer), separate messages for a missing
+  session, a refused request (403) and an unreachable helper, a read-only **Retry connection (keep
+  input)** button, the reason the create button is disabled, and a no-JavaScript notice. A
+  complete launch URL pasted into a tab that already shows the page (only the fragment changes,
+  so the page does not reload) is taken over and used to reconnect, keeping a chosen input. The
+  three web resources changed; no Python product file did, so the software identity and the
+  reference records are unchanged.
+- `scripts/check_saved_downloads.py`: an archive whose required ZIP version is unsupported now
+  yields a structured FAIL receipt instead of an uncaught `NotImplementedError`; unrelated errors
+  still propagate.
+- Windows installer: without `-Python`, the first installed standard 64-bit CPython 3.13, 3.12 or
+  3.11 is used and every attempt is logged; free-threaded, ARM64 and non-CPython builds are refused
+  before pip runs with the reason; a machine without Python is pointed to one fixed official
+  download. `READY.json` records the exact interpreter version and path. The macOS installer gains
+  the same free-threaded refusal and link.
+- User guides: install once and start directly afterwards; the complete launch URL rule when
+  switching browsers; the connection line and retry; default downloads; never delete
+  `writer.lock`. README and the development guide describe the user packages consistently.
+
 ### Fixed after the R21 Windows test (2026-10-09)
 
 - The saved-download checker also reports a ZIP whose central directory reads but whose member data
