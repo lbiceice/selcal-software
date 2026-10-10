@@ -40,8 +40,8 @@ shown in [docs/guide/interface.md](docs/guide/interface.md).
 ## Quick start
 
 The source repository is public at <https://github.com/lbiceice/selcal-software>; the released
-revision is tag `v0.1.0`, archived on Zenodo (the DOI is recorded in `CITATION.cff` and
-`codemeta.json`). For day-to-day use without a source checkout, the release carries two
+revision is tag `v0.1.0`, archived on Zenodo as <https://doi.org/10.5281/zenodo.23261953> (also in
+`CITATION.cff` and `codemeta.json`). For day-to-day use without a source checkout, the release carries two
 ready-to-run user packages, `SelCal_0.1.0_Windows_user_package.zip` and
 `SelCal_0.1.0_macOS_user_package.zip` (the same wheel, the NumPy 2.4.6 wheels, an offline
 installer, an example runner, the saved-download checker and a one-page guide); their SHA-256
