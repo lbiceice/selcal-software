@@ -136,8 +136,8 @@ def _read_wheel(wheel: Path) -> tuple[str, dict[str, bytes]]:
     return info_dir, members
 
 
-def _wheel_targets(info_dir: str, members: dict[str, bytes], root: Path) -> dict[str, str]:
-    """Wheel member -> the absolute path a standard installer places it at."""
+def _wheel_targets(info_dir: str, members: dict[str, bytes], root: Path) -> dict[str, Path]:
+    """Wheel member -> the absolute path a standard installer places it at (compare via _key)."""
     data_dir = info_dir[: -len(".dist-info")] + ".data/"
     paths = sysconfig.get_paths()
     schemes = {"purelib": paths["purelib"], "platlib": paths["platlib"],
@@ -148,9 +148,9 @@ def _wheel_targets(info_dir: str, members: dict[str, bytes], root: Path) -> dict
             scheme, _, rest = name[len(data_dir):].partition("/")
             if scheme not in schemes or not rest:
                 raise ValueError(f"unsupported wheel data scheme in {name!r}")
-            targets[name] = _key(Path(schemes[scheme], *PurePosixPath(rest).parts))
+            targets[name] = Path(schemes[scheme], *PurePosixPath(rest).parts)
         else:
-            targets[name] = _key(root.joinpath(*PurePosixPath(name).parts))
+            targets[name] = root.joinpath(*PurePosixPath(name).parts)
     return targets
 
 
@@ -304,13 +304,15 @@ def _against_wheel(dist: importlib.metadata.Distribution, installed: dict[str, s
     root = Path(str(dist.locate_file("")))
     if f"{info_dir}/RECORD" not in installed:
         raise ValueError(f"the installed distribution is not the wheel's {info_dir}")
-    targets = _wheel_targets(info_dir, members, root)
+    # Files are read at their real paths; _key() (lowercased on Windows) is only a comparison key.
+    paths = _wheel_targets(info_dir, members, root)
+    targets = {name: _key(path) for name, path in paths.items()}
     by_target = {target: name for name, target in targets.items()}
     changed, missing, record_inconsistent = [], [], []
     verified_sources = {}
     for name, target in sorted(targets.items()):
         try:
-            data = Path(target).read_bytes()
+            data = paths[name].read_bytes()
         except FileNotFoundError:
             missing.append(name)
             continue

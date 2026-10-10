@@ -18,6 +18,8 @@ import sys
 import zipfile
 from pathlib import Path
 
+import pytest
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "verify_installed_identity.py"
 
 
@@ -268,6 +270,11 @@ def test_the_running_pips_text_launcher_is_accepted(tmp_path):
     import pip
 
     data, _ = _pip_launcher(tmp_path, windows=False)
+    if os.name == "nt" and b"\n\r\n" in data.split(b"import", 1)[0]:
+        # distlib 0.3.6-0.3.8 (pip 22.3-24.0) appends os.linesep to the shebang; on Windows that
+        # is a CRLF after the "\n". pip never installs a text launcher on Windows (it writes .exe,
+        # checked by the exe tests), so this forced POSIX layout does not exist there.
+        pytest.skip(f"pip {pip.__version__}: text launcher with Windows linesep is not installable")
     verifier = _verifier()
     assert verifier["_text_launcher_matches"](data, "fakepkg.core:main", sys.executable), (
         pip.__version__)
@@ -413,7 +420,10 @@ def test_only_the_exact_legacy_separator_is_accepted(tmp_path):
     assert not check(legacy, entry, stubs, r"C:\Other\python.exe")  # another interpreter
     assert not check(legacy[:-1], entry, stubs, WINDOWS_PYTHON)  # truncated
     assert not check(legacy, "fakepkg.extra:main", stubs, WINDOWS_PYTHON)  # another entry
-    assert archive.startswith(b"PK\x03\x04")  # the current pip writes no separator
+    # pip <= 24.0 (distlib 0.3.6-0.3.8) writes the CRLF on Windows; later pip writes none.
+    assert archive.startswith(b"PK\x03\x04") or (
+        os.linesep == "\r\n" and archive.startswith(b"\r\nPK\x03\x04"))
+    assert check(data, entry, stubs, WINDOWS_PYTHON)  # whatever the running pip wrote
 
 
 # R17 item 1 (R16 Windows return): Windows normcase lowercases the path keys used to compare

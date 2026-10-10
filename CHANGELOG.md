@@ -3,6 +3,20 @@
 All notable changes to SelCal are listed here. Versions follow [Semantic Versioning](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Fixed
+
+- `scripts/verify_installed_identity.py` read installed files through its case-folded comparison
+  key; under the simulated-Windows test on a case-sensitive file system (hosted Linux runners) it
+  reported wheel files as missing. Files are now read at their real paths and the folded key is used
+  only for comparison. Real installations verified correctly before and after.
+- `scripts/acceptance_check.py` stopped with an encoding error when the console code page could not
+  encode a character of the output path (hosted Windows runners, cp1252); unencodable characters are
+  now written as escapes.
+- Two installer-launcher tests assumed the current pip's launcher layout; they now accept the CRLF that
+  pip <= 24.0 writes on Windows and skip the text-launcher case there.
+
 ## 0.1.0 - 2026-10-09
 
 First public version: tag `v0.1.0` of <https://github.com/lbiceice/selcal-software>, with the

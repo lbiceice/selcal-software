@@ -463,6 +463,12 @@ def _launch_folder(out: Path) -> Path:
 
 
 def main() -> int:
+    # A pipe on Windows uses the ANSI code page (cp1252 on an English runner): a path it cannot
+    # encode (e.g. a Chinese folder name) must not stop the check. The encoding itself is kept,
+    # because windows_native_capture.ps1 decodes with the encoding Python reports.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--records", type=Path, help="folder with records made elsewhere")
     parser.add_argument(
