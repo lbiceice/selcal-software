@@ -499,21 +499,16 @@ def test_package_facing_text_uses_candidate_status_and_retains_every_hold(
 
     assert "M0-M2 IMPLEMENTATION CANDIDATE / FINAL VERIFICATION PENDING" in upper
     if relative_path == "README.md":
-        assert (
-            "SCIENTIFIC EVIDENCE: BOUNDED SYNTHETIC STUDIES EXECUTED / "
-            "GENERAL IMPACT AND INDEPENDENT-USER BENEFIT HOLD"
-        ) in upper
+        assert "INDEPENDENT USERS HAVE NOT YET EVALUATED THE SOFTWARE." in " ".join(upper.split())
     else:
         assert "M6 SCIENTIFIC IMPACT" in upper and "HOLD" in upper
     for downstream in ("UI", "RELEASE", "LICENSE", "DOI", "MANUSCRIPT"):
         assert downstream in upper
     if relative_path == "README.md":
-        assert "LOCAL RESUME: REPLAY_BEFORE_CONTINUE" in upper
-        assert "EVIDENCE BUNDLES: CONTENT-CHECKED / UI: PARTIAL_UI_BASIC_LOOP" in upper
         assert "SELCAL EXPORT RUN.SQLITE EVIDENCE --MAX-BYTES 8388608" in upper
         assert "SELCAL VERIFY-EXPORT EVIDENCE --MAX-BYTES 8388608" in upper
-        assert "RELEASE: 0.1.0 TAGGED V0.1.0" in upper
-        assert "DOI: ZENODO" in upper and "NOT SUBMITTED" in upper
+        assert "TAGGED `V0.1.0` ON 2026-10-09" in " ".join(upper.split())
+        assert "ARCHIVED ON ZENODO" in " ".join(upper.split())
     else:
         assert "NOT DUE" in upper
         assert "HISTORICAL RECORD" in upper and "SUPERSEDED" in upper

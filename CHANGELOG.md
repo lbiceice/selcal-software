@@ -5,6 +5,13 @@ the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
 
+### Documentation
+
+- README: the internal status banners are replaced by a plain project-status section; the research
+  evidence behind the software paper is now public (https://doi.org/10.5281/zenodo.23291477) and
+  linked from the README and `.zenodo.json`.
+- `CONTRIBUTING.md`: issue route, development checks, maintenance and release policy.
+
 ### Fixed
 
 - `scripts/verify_installed_identity.py` read installed files through its case-folded comparison
@@ -84,7 +91,7 @@ Windows and macOS user packages attached to the GitHub release and the source ar
 - The Windows runner no longer states that disabled long paths are the cause of a failure; it lists
   the order in which to diagnose one.
 
-### Fixed after the R16 Windows test (2026-10-06)
+### Fixed after a native Windows test round (2026-10-06)
 
 - The installed-identity check classified files by the lowercased path key Windows uses for
   comparison, so a normal installation was refused for its own `INSTALLER` and `REQUESTED` files;
@@ -105,7 +112,7 @@ Windows and macOS user packages attached to the GitHub release and the source ar
 - The documentation states that the exceedance threshold is computed in binary64 and differs from
   `tie_tolerance`, and gives the NetTE time indices with a worked example.
 
-### Fixed after the R17 Windows test (2026-10-07)
+### Fixed after a native Windows test round (2026-10-07)
 
 - The acceptance and research-case tools start every child command in a short, new, empty folder
   and pass files as absolute paths. Windows cannot start a process whose working directory is
@@ -120,7 +127,7 @@ Windows and macOS user packages attached to the GitHub release and the source ar
 - The final Windows acceptance receipt reads `RUNNING` (with the current step) until the run ends,
   then `PASS_AUTOMATED_ONLY` or `FAIL`; a run stopped early reads `INCOMPLETE`.
 
-### Fixed after the R18 Windows test (2026-10-07)
+### Fixed after a native Windows test round (2026-10-07)
 
 - Tests that need repository-only files are skipped one by one, so every test keeps its name in the
   JUnit report; a whole-module skip had produced a record without a name, which the native Windows
@@ -135,7 +142,7 @@ Windows and macOS user packages attached to the GitHub release and the source ar
   commands start in the system temporary folder, or at the root of the output drive when that
   folder's path is very long.
 
-### Fixed after the R22 Windows test (2026-10-09)
+### Fixed after a native Windows test round (2026-10-09)
 
 - Local interface: a browser that refuses session storage no longer aborts the page script before
   the buttons are wired; a token in the launch URL is used from memory in that case. The first step
@@ -162,7 +169,7 @@ Windows and macOS user packages attached to the GitHub release and the source ar
   files, `--count 3`): byte equality with the workspace original, record replay, ZIP content and
   a regenerated-report comparison; exit 0 and `"status": "PASS"` mean all three are correct.
 
-### Fixed after the R21 Windows test (2026-10-09)
+### Fixed after a native Windows test round (2026-10-09)
 
 - The saved-download checker also reports a ZIP whose central directory reads but whose member data
   does not (CRC or decompression error, encrypted, patched-data or unsupported compression) as a
@@ -180,7 +187,7 @@ Windows and macOS user packages attached to the GitHub release and the source ar
   checked for lag 2, p = 0.015 and 0.03 with replay MATCH. Tested on CPython 3.11, 3.12 and 3.13
   (arm64).
 
-### Fixed after the R19 v3 Windows acceptance review (2026-10-08)
+### Fixed after a native Windows acceptance review (2026-10-08)
 
 - A `.DS_Store`, `desktop.ini` or `Thumbs.db` file that a file browser writes into the workspace, its
   `jobs/` folder or an evidence bundle no longer makes the interface refuse the whole workspace or the

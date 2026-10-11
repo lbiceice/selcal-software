@@ -5,7 +5,7 @@
 Analysts who scan several lags and report the strongest cross-correlation often test that winner as if
 its lag had been fixed in advance, and often ignore autocorrelation; both inflate false positives.
 SelCal implements the published remedy (repeat the whole lag search inside every circular-shift
-surrogate; Cannistra et al., eLife 2025; Yuan & Shou, PLoS Biology 2024) as reusable software, and adds:
+surrogate; Cannistra et al., eLife Reviewed Preprint 2025; Yuan & Shou, PLoS Biology 2024) as reusable software, and adds:
 
 - **a frozen analysis plan**: candidate lags, statistic, selection rule, null model, number of
   surrogates and alpha are fixed before any data-dependent step and stored with every result;
@@ -143,14 +143,14 @@ test rounds, including the native Windows results and what they do not establish
 - **Statistical operating characteristics**: the bounded synthetic studies were executed
   internally and are reported in the accompanying manuscript; see the evidence boundary below.
 
-## Research evidence boundary
+## Research evidence
 
-This source candidate contains the software, runnable examples, API documentation, product
-tests and benchmark fixtures. It does **not** include the unpublished manuscript or its
-internal research protocols, scripts, results and third-party data. The bounded synthetic
-studies have been executed internally, but their manuscript numbers cannot be independently
-recomputed from this package alone. A rights-reviewed evidence package must be attached and
-checked before any public research-reproducibility claim or SoftwareX submission.
+This repository holds the software, runnable examples, API documentation, product tests and
+benchmark fixtures. The protocols (frozen before execution), synthetic inputs, per-run results,
+comparator logs and test receipts behind the accompanying software paper are archived separately
+at <https://doi.org/10.5281/zenodo.23291477> (CC BY 4.0), with checksums and reproduction notes.
+Third-party data used in the paper's re-analysis are available from their original deposit and
+are not redistributed.
 
 ## Documentation
 
@@ -171,21 +171,21 @@ checked before any public research-reproducibility claim or SoftwareX submission
 
 ## Project status
 
-Version 0.1.0 is the first tagged release (`v0.1.0`, 2026-10-09). The historical internal milestone label
-`M0-M2 IMPLEMENTATION CANDIDATE / FINAL VERIFICATION PENDING` is not a current test-count report;
-the full status record is in [docs/guide/development.md](docs/guide/development.md#project-status).
+Version 0.1.0 is the first release: tagged `v0.1.0` on 2026-10-09 (UTC-7), published as a
+GitHub release on 2026-10-10 (UTC) and archived on Zenodo (DOI in `CITATION.cff`). Changes made
+after the tag are listed under *Unreleased* in `CHANGELOG.md`; contribution and maintenance rules
+are in `CONTRIBUTING.md`.
 
-`SCIENTIFIC EVIDENCE: BOUNDED SYNTHETIC STUDIES EXECUTED / GENERAL IMPACT AND INDEPENDENT-USER BENEFIT HOLD`
-
-`LICENSE: BSD-3-CLAUSE / RELEASE: 0.1.0 TAGGED v0.1.0 (2026-10-09) / DOI: ZENODO, SEE CITATION.cff /
-MANUSCRIPT: IN PREPARATION, NOT SUBMITTED`
-
-`LOCAL RESUME: REPLAY_BEFORE_CONTINUE / EVIDENCE BUNDLES: CONTENT-CHECKED / UI: PARTIAL_UI_BASIC_LOOP`
+- **Scientific evidence.** Protocol-frozen synthetic studies and one re-analysis of a published
+  correlation (records at the DOI above) describe the operating characteristics under the tested
+  conditions only. Independent users have not yet evaluated the software.
+- **Interface.** The local browser interface covers input, validation, run, resume, record checks,
+  reports, evidence export and checked downloads; it runs the same command-line process and adds
+  no statistical function.
+- **Long runs.** An interrupted run resumes only after the retained surrogates have been
+  recomputed and matched in the same code and environment.
+- **Platforms.** Tested platforms and their limits are listed in
+  [docs/guide/development.md](docs/guide/development.md).
 
 SelCal is not a causal-edge inference product. Records are terminal results that can be
-verified and replayed. Opt-in checkpoints support local same-environment recovery by
-replaying the retained prefix before continuing. Portable evidence bundles can be
-exported and checked without replay. The graphical interface implements the basic
-input/validate/run/resume/result-content-check loop plus reports, evidence export
-and checked downloads. F4C integration is locally accepted on macOS; the native Windows run of
-the released package is recorded separately in `docs/status/`.
+verified and replayed; portable evidence folders can be exported and checked without replay.

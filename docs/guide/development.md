@@ -77,8 +77,8 @@ Version 0.1.0 is the first tagged release (tag `v0.1.0`, 2026-10-09). The histor
 The R5 and R11 native Windows results above cover their own candidates and environments only.
 The private full-checkout suite also includes research, manuscript and governance tests; its
 denominator is not the product source-package denominator. The native Windows run of the
-released package, an independent user evaluation and later platform checks are recorded in
-`docs/status/` as they happen; they do not change the released bytes.
+released package, an independent user evaluation and later platform checks are reported in
+`CHANGELOG.md` and the release notes as they happen; they do not change the released bytes.
 
 ## Install from source
 
@@ -101,7 +101,7 @@ installers before pip runs), an offline install script, an example runner, the s
 checker `check_saved_downloads.py` (see [saved-download verification](saved-download-verification.md))
 and a one-page guide; after the download no network access is needed. The installers accept any installed standard
 64-bit CPython 3.11-3.13; for a machine without one, the guides name one fixed official download
-(Python 3.13.16) whose exact-patch acceptance is recorded per platform in `docs/status/` and is not
+(Python 3.13.16) whose exact-patch acceptance is reported per platform in the release notes and is not
 claimed before it has been run. They are not a substitute for this source install when developing
 or testing.
 

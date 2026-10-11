@@ -257,30 +257,31 @@ def test_architecture_capability_table_is_truthful() -> None:
 def test_readme_states_implemented_and_absent_product_boundaries() -> None:
     readme_text = public_documentation_text(REPOSITORY_ROOT)
 
-    assert "M0-M2 IMPLEMENTATION CANDIDATE / FINAL VERIFICATION PENDING" in readme_text
+    readme_only = (REPOSITORY_ROOT / "README.md").read_text(encoding="utf-8")
+    readme_flat = " ".join(readme_only.split())
+
     assert "Current implementation:" in readme_text
-    assert (
-        "SCIENTIFIC EVIDENCE: BOUNDED SYNTHETIC STUDIES EXECUTED / "
-        "GENERAL IMPACT AND INDEPENDENT-USER BENEFIT HOLD"
-    ) in readme_text
-    # Licence is chosen; v0.1.0 is tagged and archived; manuscript submission remains open.
-    assert "LICENSE: BSD-3-CLAUSE" in readme_text
-    assert "DOI: ZENODO, SEE CITATION.cff" in readme_text
-    assert "MANUSCRIPT: IN PREPARATION, NOT SUBMITTED" in readme_text
-    assert (
-        "LOCAL RESUME: REPLAY_BEFORE_CONTINUE / EVIDENCE BUNDLES: CONTENT-CHECKED / "
-        "UI: PARTIAL_UI_BASIC_LOOP"
-    ) in readme_text
-    assert (
-        "input/validate/run/resume/result-content-check loop plus reports, evidence export\n"
-        "and checked downloads. F4C integration is locally accepted on macOS; "
-        "the native Windows run of\n"
-        "the released package is recorded separately in `docs/status/`."
-        in readme_text
-    )
+    # The entry page states the release, the public evidence record and the open evaluation in
+    # plain words; internal milestone banners and pre-submission labels stay off it.
+    assert "tagged `v0.1.0` on 2026-10-09 (UTC-7)" in readme_flat
+    assert "https://doi.org/10.5281/zenodo.23291477" in readme_only
+    assert "Independent users have not yet evaluated the software." in readme_flat
+    assert "adds no statistical function" in readme_flat
+    assert "recomputed and matched in the same code and environment" in readme_flat
+    for stale in (
+        "NOT SUBMITTED",
+        "INDEPENDENT-USER BENEFIT HOLD",
+        "PARTIAL_UI_BASIC_LOOP",
+        "IMPLEMENTATION CANDIDATE",
+        "cannot be independently",
+        "docs/status/",
+        "F4C",
+    ):
+        assert stale not in readme_only
+    # The historical milestone label survives only on the development record page.
+    assert "M0-M2 IMPLEMENTATION CANDIDATE / FINAL VERIFICATION PENDING" in readme_text
     assert "selcal export run.sqlite evidence --max-bytes 8388608" in readme_text
     assert "selcal verify-export evidence --max-bytes 8388608" in readme_text
-    assert "RELEASE: 0.1.0 TAGGED v0.1.0 (2026-10-09)" in readme_text
     assert "RESUME, EVIDENCE BUNDLES, UI: NOT DUE" not in readme_text
     normalized = " ".join(readme_text.split())
     assert "The 2026-10-07 R19 v2 return" in normalized

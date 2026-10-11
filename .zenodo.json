@@ -9,7 +9,7 @@
       "orcid": "0009-0007-5344-0594"
     }
   ],
-  "description": "<p>SelCal tests lagged dependence between two time series when the lag is chosen by scanning a pre-declared set of candidate lags. It repeats the complete lag search inside every circular-shift surrogate, can enumerate the whole circular group exactly (null <code>circular_shift_exact_v1</code>), refuses plans whose smallest attainable p-value exceeds alpha (with a circular null and L searched lags the exact p-value cannot fall below L/n), and keeps verifiable, replayable records. Command-line workflow: <code>selcal validate</code>, <code>run</code>, <code>verify --replay</code>, <code>report</code>.</p><p>This source candidate contains software, product tests, documentation and examples. It does not include the accompanying manuscript's unpublished research protocols, simulation results or third-party data; those require a separately reviewed evidence package before a reproducibility claim. The method credited is the tailored-lag circular-shift test (Cannistra et al., eLife 2025; Yuan and Shou, PLoS Biology 2024).</p>",
+  "description": "<p>SelCal tests lagged dependence between two time series when the lag is chosen by scanning a pre-declared set of candidate lags. It repeats the complete lag search inside every circular-shift surrogate, can enumerate the whole circular group exactly (null <code>circular_shift_exact_v1</code>), refuses plans whose smallest attainable p-value exceeds alpha (with a circular null and L searched lags the exact p-value cannot fall below L/n), and keeps verifiable, replayable records. Command-line workflow: <code>selcal validate</code>, <code>run</code>, <code>verify --replay</code>, <code>report</code>.</p><p>This record holds the software, product tests, documentation and examples. The protocols (frozen before execution), synthetic inputs, per-run results and test receipts behind the accompanying software paper are archived separately at <a href=\"https://doi.org/10.5281/zenodo.23291477\">10.5281/zenodo.23291477</a> (CC BY 4.0). The method credited is the tailored-lag circular-shift test (Cannistra et al., eLife Reviewed Preprint 2025; Yuan and Shou, PLoS Biology 2024).</p>",
   "access_right": "open",
   "license": "bsd-3-clause",
   "keywords": [
@@ -36,6 +36,12 @@
       "identifier": "10.5281/zenodo.20096919",
       "relation": "references",
       "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.23291477",
+      "relation": "isSupplementedBy",
+      "scheme": "doi",
+      "resource_type": "dataset"
     }
   ],
   "publication_date": "2026-10-09"
