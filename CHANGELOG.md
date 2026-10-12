@@ -3,7 +3,10 @@
 All notable changes to SelCal are listed here. Versions follow [Semantic Versioning](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 0.1.1 - 2026-10-12
+
+Corrects the Monte Carlo check for the experimental adapters and a capture race in the Windows
+helper scripts. The lagged-Pearson circular-shift analyses and the calibration core are unchanged.
 
 ### Documentation
 
@@ -14,6 +17,15 @@ the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Plans for the experimental adapters (block shuffle, binned transfer entropy) and plans whose null
+  state space is empty skipped the Monte Carlo check 1/(B + 1) <= alpha and reported
+  `NOT_ASSESSED` instead of `REFUSE_REPLICATES_TOO_FEW`. The check now runs for every plan before
+  any adapter-specific analysis. Lagged Pearson with a circular-shift null was not affected.
+- `scripts/windows_native_capture.ps1` flushed its raw-output files from the polling thread while
+  the copy tasks were writing to them; a `FileStream` is not thread-safe, and under load a whole line
+  could be lost from the raw file and from the captured lines (2 of 10 runs in the emulated
+  PowerShell test, 10 of 32 in a stress run). The files are now unbuffered and touched only by the
+  copy tasks (0 of 60 in the same stress run). The copies in the Windows entry scripts are updated.
 - `scripts/verify_installed_identity.py` read installed files through its case-folded comparison
   key; under the simulated-Windows test on a case-sensitive file system (hosted Linux runners) it
   reported wheel files as missing. Files are now read at their real paths and the folded key is used

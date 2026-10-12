@@ -43,7 +43,7 @@ def test_lockfile_records_runtime_and_all_declared_optional_surfaces() -> None:
     assert lock["requires-python"] == ">=3.11"
 
     project = _project_package(lock)
-    assert project["version"] == "0.1.0"
+    assert project["version"] == "0.1.1"
     assert project["source"] == {"editable": "."}
     assert _dependency_names(project["dependencies"]) == {"numpy"}
 

@@ -103,9 +103,12 @@ function Invoke-NativeCapture {
     $info.UseShellExecute = $false
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
+    # Unbuffered sinks (buffer size 1): only the copy tasks touch them, so every byte reaches the
+    # file as it is written. A FileStream is not thread-safe; flushing it from this thread while a
+    # copy task wrote to it lost whole lines under load (0.1.0).
     $paths = @("$RawPath.stdout", "$RawPath.stderr")
     $sinks = @(foreach ($path in $paths) {
-        New-Object System.IO.FileStream($path, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read)
+        New-Object System.IO.FileStream($path, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read, 1)
     })
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $info
@@ -123,7 +126,6 @@ function Invoke-NativeCapture {
             $finished = $process.WaitForExit(500)
             if ($finished) { $process.WaitForExit(); [System.Threading.Tasks.Task]::WaitAll($copies) }
             foreach ($index in 0, 1) {
-                $sinks[$index].Flush()
                 $offset = $offsets[$index]
                 foreach ($line in (Read-NativeLines $paths[$index] ([ref]$offset) $finished $decoders[$index])) {
                     if ($line.StartsWith("[not valid ")) { $invalid += 1 }

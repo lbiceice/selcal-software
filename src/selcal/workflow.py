@@ -398,17 +398,24 @@ def attainability(request: PlanRequestV2, sample_count: int) -> dict[str, Any]:
         "scope": "plan_arithmetic_not_scientific_validity",
     }
     enumerating = request.null_name == "circular_shift_exact_v1"
+    # The Monte Carlo floor 1 / (B + 1) binds every adapter, so it is checked before the
+    # adapter-specific analysis can return early (0.1.0 skipped it for other nulls/statistics).
+    replicates_too_few = not 1 / (replicates + 1) <= alpha
     if (
         request.null_name not in {"circular_shift_v2", "circular_shift_exact_v1"}
         or request.statistic_name != "lagged_pearson_v1"
     ):
-        report["status"] = "NOT_ASSESSED"
+        report["status"] = "REFUSE_REPLICATES_TOO_FEW" if replicates_too_few else "NOT_ASSESSED"
         return report
     min_shift = request.null_params["min_shift"]
     if type(min_shift) is not int:
         raise WorkflowError("invalid_null_parameters")
     if 2 * min_shift > sample_count:
-        report["status"] = "NOT_ASSESSED_EMPTY_NULL_STATE_SPACE"
+        report["status"] = (
+            "REFUSE_REPLICATES_TOO_FEW"
+            if replicates_too_few
+            else "NOT_ASSESSED_EMPTY_NULL_STATE_SPACE"
+        )
         return report
     states = sample_count - 2 * min_shift + 2
     candidates = request.candidates
@@ -435,7 +442,7 @@ def attainability(request: PlanRequestV2, sample_count: int) -> dict[str, Any]:
         report["monte_carlo_power_cap"] = _binomial_cdf_below(
             _allowed_exceedances(replicates, alpha), replicates, float(share)
         )
-    if not 1 / (replicates + 1) <= alpha:
+    if replicates_too_few:
         report["status"] = "REFUSE_REPLICATES_TOO_FEW"
     elif min_shift > 1:
         report["status"] = NON_GROUP_NULL

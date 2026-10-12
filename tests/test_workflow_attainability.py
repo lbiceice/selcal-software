@@ -19,7 +19,7 @@ from selcal.contracts import SeriesPair
 from selcal.contracts_v2 import PlanRequestV2
 from selcal.nulls.circular_shift_exact_v1 import CircularShiftExactNullV1
 from selcal.statistics.lagged_pearson import LaggedPearsonAdapter
-from selcal.workflow import attainability, run_files, validate_files
+from selcal.workflow import attainability, preflight, run_files, validate_files
 from selcal.workflow_config import WorkflowConfigError
 
 CAP = 1_048_576
@@ -274,3 +274,38 @@ def test_wrong_enumeration_count_reports_no_power_cap():
     )
     assert report["status"] == "REFUSE_ENUMERATION_REPLICATE_COUNT"
     assert report["monte_carlo_power_cap"] is None
+
+
+@pytest.mark.parametrize(
+    ("null_name", "null_params", "statistic_name", "statistic_params"),
+    [
+        ("block_shuffle_v2", {"block_length": 4}, "lagged_pearson_v1", {}),
+        ("circular_shift_v2", {"min_shift": 1}, "binned_transfer_entropy_v1", {"bins": 3}),
+        ("circular_shift_v2", {"min_shift": 1}, "lagged_pearson_v1", {}),
+    ],
+)
+@pytest.mark.parametrize(("replicates", "refused"), [(9, True), (18, True), (19, False)])
+def test_monte_carlo_floor_is_checked_for_every_adapter(
+    null_name: str,
+    null_params: dict[str, int],
+    statistic_name: str,
+    statistic_params: dict[str, int],
+    replicates: int,
+    refused: bool,
+) -> None:
+    """1 / (B + 1) > alpha is refused whatever the null and statistic (0.1.0 skipped others)."""
+    request = PlanRequestV2(
+        candidates=(1, 2),
+        statistic_name=statistic_name,
+        statistic_params=statistic_params,
+        selection_rule="max_absolute",
+        null_name=null_name,
+        null_params=null_params,
+        replicates=replicates,
+        alpha=0.05,
+        tie_tolerance=0.0,
+        root_seed=1,
+    )
+    plan = preflight(request, sample_count=200)["plan"]
+    assert ("REFUSE_REPLICATES_TOO_FEW" in plan["reasons"]) is refused
+    assert (plan["status"] == "NOT_EXECUTABLE") is refused

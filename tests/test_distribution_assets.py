@@ -275,6 +275,7 @@ def test_sdist_contains_documented_user_assets(distributions: tuple[Path, Path, 
         "docs/benchmarks/in_memory_standard_20261006_r16b.json",
         "docs/benchmarks/in_memory_standard_20261006_r17.json",
         "docs/benchmarks/in_memory_standard_20261008_r21.json",
+        "docs/benchmarks/in_memory_standard_20261012_p011.json",
     }
     readme = (source / "README.md").read_text(encoding="utf-8")
     required.update(re.findall(r"(?:examples|scripts)/[A-Za-z0-9_./-]+\.py", readme))

@@ -39,11 +39,12 @@ shown in [docs/guide/interface.md](docs/guide/interface.md).
 
 ## Quick start
 
-The source repository is public at <https://github.com/lbiceice/selcal-software>; the released
-revision is tag `v0.1.0`, archived on Zenodo as <https://doi.org/10.5281/zenodo.23261953> (also in
+The source repository is public at <https://github.com/lbiceice/selcal-software>; the latest
+release is tag `v0.1.1`, archived on Zenodo under the concept DOI
+<https://doi.org/10.5281/zenodo.23261952>, which always resolves to the latest version (also in
 `CITATION.cff` and `codemeta.json`). For day-to-day use without a source checkout, the release carries two
-ready-to-run user packages, `SelCal_0.1.0_Windows_user_package.zip` and
-`SelCal_0.1.0_macOS_user_package.zip` (the same wheel, the NumPy 2.4.6 wheels, an offline
+ready-to-run user packages, `SelCal_0.1.1_Windows_user_package.zip` and
+`SelCal_0.1.1_macOS_user_package.zip` (the same wheel, the NumPy 2.4.6 wheels, an offline
 installer, an example runner, the saved-download checker and a one-page guide); their SHA-256
 digests are in the release notes. See [Install from source](docs/guide/development.md#install-from-source). The source route
 below uses a fresh virtual environment (standard CPython 3.11-3.13; free-threaded builds are not
@@ -164,16 +165,17 @@ are not redistributed.
 
 ## Citation, licence and support
 
-- Cite the software with `CITATION.cff`; it names the Zenodo DOI of the archived release v0.1.0.
+- Cite the software with `CITATION.cff`; it names the Zenodo concept DOI of the archived releases.
 - Licence: BSD 3-Clause (`LICENSE.txt`; `Licence.txt` is an identical copy required by SoftwareX).
 - Questions and problems: the issue tracker of the public repository, or the maintainer contact
   in `CITATION.cff`.
 
 ## Project status
 
-Version 0.1.0 is the first release: tagged `v0.1.0` on 2026-10-09 (UTC-7), published as a
+Version 0.1.1 (tagged `v0.1.1` on 2026-10-12, UTC-7) is a bug-fix release; see `CHANGELOG.md`.
+Version 0.1.0 was the first release: tagged `v0.1.0` on 2026-10-09 (UTC-7), published as a
 GitHub release on 2026-10-10 (UTC) and archived on Zenodo (DOI in `CITATION.cff`). Changes made
-after the tag are listed under *Unreleased* in `CHANGELOG.md`; contribution and maintenance rules
+after a tag are listed under *Unreleased* in `CHANGELOG.md`; contribution and maintenance rules
 are in `CONTRIBUTING.md`.
 
 - **Scientific evidence.** Protocol-frozen synthetic studies and one re-analysis of a published
