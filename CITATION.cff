@@ -3,7 +3,7 @@ message: "If you use SelCal, please cite it as below."
 title: "SelCal: selection-aware calibration of scanned-lag dependence tests"
 version: "0.1.1"
 date-released: "2026-10-12"
-doi: 10.5281/zenodo.23261952
+doi: 10.5281/zenodo.23332111
 license: BSD-3-Clause
 type: software
 repository-code: "https://github.com/lbiceice/selcal-software"

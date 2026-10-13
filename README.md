@@ -149,7 +149,7 @@ test rounds, including the native Windows results and what they do not establish
 This repository holds the software, runnable examples, API documentation, product tests and
 benchmark fixtures. The protocols (frozen before execution), synthetic inputs, per-run results,
 comparator logs and test receipts behind the accompanying software paper are archived separately
-at <https://doi.org/10.5281/zenodo.23291477> (CC BY 4.0), with checksums and reproduction notes.
+at <https://doi.org/10.5281/zenodo.23332143> (CC BY 4.0), with checksums and reproduction notes.
 Third-party data used in the paper's re-analysis are available from their original deposit and
 are not redistributed.
 

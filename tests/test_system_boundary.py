@@ -264,7 +264,7 @@ def test_readme_states_implemented_and_absent_product_boundaries() -> None:
     # The entry page states the release, the public evidence record and the open evaluation in
     # plain words; internal milestone banners and pre-submission labels stay off it.
     assert "tagged `v0.1.0` on 2026-10-09 (UTC-7)" in readme_flat
-    assert "https://doi.org/10.5281/zenodo.23291477" in readme_only
+    assert "https://doi.org/10.5281/zenodo.23332143" in readme_only
     assert "Independent users have not yet evaluated the software." in readme_flat
     assert "adds no statistical function" in readme_flat
     assert "recomputed and matched in the same code and environment" in readme_flat
