@@ -8,7 +8,8 @@ SelCal implements the published remedy (repeat the whole lag search inside every
 surrogate; Cannistra et al., eLife Reviewed Preprint 2025; Yuan & Shou, PLoS Biology 2024) as reusable software, and adds:
 
 - **a frozen analysis plan**: candidate lags, statistic, selection rule, null model, number of
-  surrogates and alpha are fixed before any data-dependent step and stored with every result;
+  surrogates and alpha are resolved before calibration and stored with every result (this does
+  not show when the analyst first saw the data);
 - **exact enumeration** of the complete circular group (`circular_shift_exact_v1`), removing Monte Carlo
   loss;
 - **an attainable-p guard**: in the circular Pearson lag scan, at least L of the n circular states
@@ -150,7 +151,7 @@ This repository holds the software, runnable examples, API documentation, produc
 benchmark fixtures. The protocols (frozen before execution), synthetic inputs, per-run results,
 comparator logs and test receipts behind the accompanying software paper are archived separately
 at <https://doi.org/10.5281/zenodo.23332143> (CC BY 4.0), with checksums and reproduction notes.
-Third-party data used in the paper's re-analysis are available from their original deposit and
+Third-party data used in the paper's software example are available from their original deposit and
 are not redistributed.
 
 ## Documentation
@@ -178,8 +179,8 @@ GitHub release on 2026-10-10 (UTC) and archived on Zenodo (DOI in `CITATION.cff`
 after a tag are listed under *Unreleased* in `CHANGELOG.md`; contribution and maintenance rules
 are in `CONTRIBUTING.md`.
 
-- **Scientific evidence.** Protocol-frozen synthetic studies and one re-analysis of a published
-  correlation (records at the DOI above) describe the operating characteristics under the tested
+- **Scientific evidence.** Protocol-frozen synthetic studies and one software example on publicly
+  archived series (records at the DOI above; it does not reproduce the original analysis) describe the operating characteristics under the tested
   conditions only. Independent users have not yet evaluated the software.
 - **Interface.** The local browser interface covers input, validation, run, resume, record checks,
   reports, evidence export and checked downloads; it runs the same command-line process and adds

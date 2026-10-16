@@ -36,6 +36,11 @@ with create_checkpoint(directory, header_bytes=header, input_bytes=raw, request_
         inject.execute('PRAGMA cache_spill=ON')
         inject.execute('BEGIN IMMEDIATE')
         inject.execute("UPDATE members SET payload=? WHERE name='input'", (b'Z' * len(raw),))
+        # SQLite 3.53 keeps the rewritten overflow pages in cache until a later statement
+        # needs a page from another b-tree; reading the other tables forces the spill that
+        # the parent asserts below (SQLite 3.47-3.51 already spill during the UPDATE).
+        inject.execute('SELECT count(*) FROM replicates').fetchone()
+        inject.execute('SELECT count(*) FROM state').fetchone()
     crash_barrier('store-ready')
 """
 

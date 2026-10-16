@@ -3,6 +3,26 @@
 All notable changes to SelCal are listed here. Versions follow [Semantic Versioning](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Fixed
+
+- `tests/test_distribution_assets.py` required the development-only test files to be present in
+  every git checkout, so a clone of this public repository reported one failure (4,670 passed,
+  1 failed). In a public checkout, recognised by `RELEASE_MANIFEST.tsv`, the test now requires
+  those files to be absent from both the manifest and the checkout. The software is unchanged.
+- `tests/test_checkpoint_store_crash.py`: with SQLite 3.53 (for example Homebrew Python 3.12 and
+  3.13 on macOS) the hot-journal cases failed their own setup check, because SQLite kept the
+  injected uncommitted pages in cache instead of spilling them to the database file before the
+  kill. The child now reads two other tables after the update, which forces the spill on SQLite
+  3.47-3.53; the assertions are unchanged. The checkpoint code is unchanged.
+
+### Documentation
+
+- README: the plan is described as resolved before calibration, which does not show when the
+  analyst first saw the data; the dengue-climate case is called a software example on publicly
+  archived series, not a re-analysis, matching the software paper.
+
 ## 0.1.1 - 2026-10-12
 
 Corrects the Monte Carlo check for the experimental adapters and a capture race in the Windows

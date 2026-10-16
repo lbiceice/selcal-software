@@ -382,10 +382,19 @@ def test_repository_only_tests_have_explicit_exclusions_and_remain_in_checkout(
     source, sdist, _ = distributions
     manifest = (source / "MANIFEST.in").read_text(encoding="utf-8")
     files = _sdist_files(sdist)
+    # The public repository is the audited release surface listed in RELEASE_MANIFEST.tsv; it
+    # never contains these development-only files, so a git clone of it must not either.
+    release_manifest = ROOT / "RELEASE_MANIFEST.tsv"
+    public_paths = None
+    if release_manifest.is_file():
+        rows = release_manifest.read_text(encoding="utf-8").splitlines()[1:]
+        public_paths = {row.split("\t", 1)[0] for row in rows}
     for name, reason in REPOSITORY_ONLY_TEST_FILES.items():
         assert f"# {reason}\nexclude {name}\n" in manifest, name
         assert name not in files, name
-        if not (ROOT / name).exists():
+        if public_paths is not None:
+            assert name not in public_paths and not (ROOT / name).exists(), name
+        elif not (ROOT / name).exists():
             assert not (ROOT / ".git").exists(), f"missing checkout evidence: {name}"
         else:
             assert (source / name).read_bytes() == (ROOT / name).read_bytes(), name
