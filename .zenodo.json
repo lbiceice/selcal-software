@@ -1,7 +1,7 @@
 {
   "upload_type": "software",
   "title": "SelCal: selection-aware calibration of scanned-lag dependence tests",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "creators": [
     {
       "name": "Liang, Bingbing",
@@ -9,7 +9,7 @@
       "orcid": "0009-0007-5344-0594"
     }
   ],
-  "description": "<p>SelCal tests lagged dependence between two time series when the lag is chosen by scanning a pre-declared set of candidate lags. It repeats the complete lag search inside every circular-shift surrogate, can enumerate the whole circular group exactly (null <code>circular_shift_exact_v1</code>), refuses plans whose smallest attainable p-value exceeds alpha (for a lagged-Pearson scan of L lags over the complete circular group the exact p-value cannot fall below L/n), and keeps verifiable, replayable records. Command-line workflow: <code>selcal validate</code>, <code>run</code>, <code>verify --replay</code>, <code>report</code>.</p><p>This record holds the software, product tests, documentation and examples. The protocols (frozen before execution), synthetic inputs, per-run results and test receipts behind the accompanying software paper are archived separately at <a href=\"https://doi.org/10.5281/zenodo.23332143\">10.5281/zenodo.23332143</a> (CC BY 4.0). The method credited is the tailored-lag circular-shift test (Cannistra et al., eLife Reviewed Preprint 2025; Yuan and Shou, PLoS Biology 2024).</p>",
+  "description": "<p>SelCal tests lagged dependence between two time series when the lag is chosen by scanning a pre-declared set of candidate lags. It repeats the complete lag search inside every circular-shift surrogate, can enumerate the whole circular group exactly (null <code>circular_shift_exact_v1</code>), refuses plans whose smallest attainable p-value exceeds alpha (for a lagged-Pearson scan of L lags over the complete circular group the exact p-value cannot fall below L/n), and keeps verifiable, replayable records. Command-line workflow: <code>selcal validate</code>, <code>run</code>, <code>verify --replay</code>, <code>report</code>.</p><p>This record holds the software, product tests, documentation and examples. Release 0.1.2 corrects the scientific-assumption advisory printed by <code>selcal validate</code>, the report and the interface, ships the exact-enumeration example of the software paper and a paper-to-evidence manifest (<code>docs/paper/selcal_softwarex_manifest.json</code>); the calibration code is that of 0.1.1. The protocols (frozen before execution), synthetic inputs, per-run results and test receipts behind the accompanying software paper are archived separately at <a href=\"https://doi.org/10.5281/zenodo.23332143\">10.5281/zenodo.23332143</a> (CC BY 4.0). The method credited is the tailored-lag circular-shift test (Cannistra et al., eLife Reviewed Preprint 2025; Yuan and Shou, PLoS Biology 2024).</p>",
   "access_right": "open",
   "license": "bsd-3-clause",
   "keywords": [

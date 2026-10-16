@@ -1,0 +1,103 @@
+{
+  "schema": "selcal.paper-manifest.v1",
+  "article": {
+    "title": "SelCal: selection-aware calibration of scanned-lag dependence tests with an attainable-p guard",
+    "journal": "SoftwareX",
+    "status": "manuscript submitted for review; section, figure and table numbers refer to that manuscript and its Supplementary Tables S1-S6"
+  },
+  "software": {
+    "cited_release": "0.1.2",
+    "cited_release_doi": "10.5281/zenodo.23415845",
+    "concept_doi": "10.5281/zenodo.23261952",
+    "scope_of_0_1_2": "0.1.2 changes advisory text, report and interface wording, documentation, examples and this manifest; the calibration code and the lagged-Pearson results are those of 0.1.1",
+    "evidence_releases": {
+      "0.1.0": "10.5281/zenodo.23261953",
+      "0.1.1": "10.5281/zenodo.23332111"
+    }
+  },
+  "archives": {
+    "validation_records": {
+      "doi": "10.5281/zenodo.23332143",
+      "file": "SelCal_0.1.1_validation_records.zip",
+      "sha256": "ac3dd6b72e925dea07f311668b489a15ea8ff2d522369ddb3bbd26d4c2c73746",
+      "licence": "CC BY 4.0"
+    },
+    "dengue_climate_data": {
+      "doi": "10.5281/zenodo.20096919",
+      "file": "Climate_dengue_data_Kerala_paper.csv",
+      "sha256": "91fac1a7f6c7b893c2065726f4b26aeb9301dd8aec7a6bbd8bcb68780074289b",
+      "licence": "CC BY 4.0",
+      "note": "third-party deposit; not redistributed here"
+    },
+    "journal_supplement": "the article's supplementary reproducibility package holds the dengue-climate runner, its frozen protocol, results and the figure scripts"
+  },
+  "claims": [
+    {
+      "claim": "Exact p-value is at least L/n for an evaluable circular Pearson scan; such plans with L/n > alpha are refused by default",
+      "article": ["Section 1", "Fig. 1"],
+      "release_paths": ["tests/test_workflow_attainability.py", "tests/test_null_validity_gate.py"],
+      "check": "selcal validate on a plan with L/n > alpha exits 2"
+    },
+    {
+      "claim": "Exact null uses every non-identity shift once and is checked from the record",
+      "article": ["Section 2.1"],
+      "release_paths": ["tests/test_null_circular_shift_exact_v1.py", "tests/test_calibration_v2_enumeration.py", "tests/test_exact_oracle_independence.py"],
+      "check": "pytest on these files"
+    },
+    {
+      "claim": "Pearson numeric stability (not statistical validation)",
+      "article": ["Section 2.2"],
+      "release_paths": ["tests/test_pearson_numeric_stability.py", "tests/test_statistic_lagged_pearson.py"],
+      "check": "pytest on these files"
+    },
+    {
+      "claim": "Plan file to replayed result with the exact circular null",
+      "article": ["Section 3.1"],
+      "release_paths": ["examples/workflow/series.csv", "examples/workflow/pearson_exact.json", "docs/guide/exact_example.md"],
+      "check": "selcal validate, run, verify --replay: COMPLETE, selected lag 2, E = 2 of 99, p = 0.03, replay MATCH"
+    },
+    {
+      "claim": "Null rejection and power of SelCal and comparators",
+      "article": ["Tables 1-2", "Table S1", "Figs. 4-5", "Section 4.1"],
+      "archive_folders": ["remedy_confirm_20260920", "comparator_arms_20260919", "valid_comparators_20261010", "ar1_power_20261010", "nongaussian_null_20261010"],
+      "check": "each folder: frozen protocol hash, runner and results"
+    },
+    {
+      "claim": "Confirmation decisions reproduced with the released 0.1.1 wheel",
+      "article": ["Section 4.1", "Table S4"],
+      "archive_folders": ["confirmation_rerun_0_1_1_20261012"],
+      "check": "compare.py: 0 of 112,000 decisions differ"
+    },
+    {
+      "claim": "Verification detects edited records under the stated threat model (not historical authenticity); replay recomputes",
+      "article": ["Section 2.2"],
+      "release_paths": ["tests/test_verifier_integration_v2.py"],
+      "archive_folders": ["record_tamper_20261010"],
+      "check": "selcal verify and verify --replay on the tampered copies"
+    },
+    {
+      "claim": "Published plans that cannot reach alpha: 11 of 21",
+      "article": ["Section 1", "Section 4.2", "Table S3"],
+      "archive_folders": ["guard_survey_20260922"],
+      "check": "recompute L/n per row of extraction.csv"
+    },
+    {
+      "claim": "Dengue-climate software example",
+      "article": ["Section 3.2", "Fig. 3", "Table S6"],
+      "archive_folders": ["real_case_rerun_0_1_0_20261010"],
+      "check": "run_real_case.py from the journal supplement with the released wheel"
+    },
+    {
+      "claim": "Test counts and platforms",
+      "article": ["Code metadata C6", "Table S5"],
+      "archive_folders": ["release_0_1_1_receipts_20261012", "release_0_1_0_receipts_20261010"],
+      "check": "count passed, skipped and failed cases"
+    },
+    {
+      "claim": "Workflow timings",
+      "article": ["Table S2"],
+      "archive_folders": ["user_workflow_timing_20261010"],
+      "check": "time_workflow.py"
+    }
+  ]
+}

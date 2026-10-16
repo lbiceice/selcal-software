@@ -7,7 +7,7 @@ from selcal.migration_v1_to_v2 import PlanMigrationV1ToV2, migrate_plan_v1_to_v2
 from selcal.resolution import PlanResolution, resolve_plan
 from selcal.resolution_v2 import PlanResolutionV2, resolve_plan_v2
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __all__ = [
     "InvalidNullForInferenceError",
     "PlanMigrationV1ToV2",

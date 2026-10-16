@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "selcal"
-version = "0.1.1"
+version = "0.1.2"
 description = "Selection-aware calibration of scanned-lag dependence tests between two time series"
 readme = "README.md"
 requires-python = ">=3.11"

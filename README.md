@@ -41,11 +41,11 @@ shown in [docs/guide/interface.md](docs/guide/interface.md).
 ## Quick start
 
 The source repository is public at <https://github.com/lbiceice/selcal-software>; the latest
-release is tag `v0.1.1`, archived on Zenodo under the concept DOI
-<https://doi.org/10.5281/zenodo.23261952>, which always resolves to the latest version (also in
-`CITATION.cff` and `codemeta.json`). For day-to-day use without a source checkout, the release carries two
-ready-to-run user packages, `SelCal_0.1.1_Windows_user_package.zip` and
-`SelCal_0.1.1_macOS_user_package.zip` (the same wheel, the NumPy 2.4.6 wheels, an offline
+release is tag `v0.1.2`, archived on Zenodo at the version DOI
+<https://doi.org/10.5281/zenodo.23415845> (also in `CITATION.cff` and `codemeta.json`); the concept DOI
+<https://doi.org/10.5281/zenodo.23261952> always resolves to the latest version. For day-to-day use without a source checkout, the release carries two
+ready-to-run user packages, `SelCal_0.1.2_Windows_user_package.zip` and
+`SelCal_0.1.2_macOS_user_package.zip` (the same wheel, the NumPy 2.4.6 wheels, an offline
 installer, an example runner, the saved-download checker and a one-page guide); their SHA-256
 digests are in the release notes. See [Install from source](docs/guide/development.md#install-from-source). The source route
 below uses a fresh virtual environment (standard CPython 3.11-3.13; free-threaded builds are not
@@ -101,6 +101,8 @@ records cannot be used; `selcal doctor --folder DIR` checks the folder where you
 (selected lag 2; p = 0.015 with 199 sampled surrogates, p = 0.03 with exact enumeration; null
 rejected; replay MATCH; the HTML report shows the same values). It prints PASS/FAIL per check and
 exits 0 only if everything passed. Open `report.html` in a browser to read the result.
+The exact-enumeration plan of the software paper (Section 3.1) is shipped as
+`examples/workflow/pearson_exact.json`; see [the exact-enumeration example](docs/guide/exact_example.md).
 
 ### Use your own two series
 
@@ -159,6 +161,7 @@ are not redistributed.
 | Page | Contents |
 |---|---|
 | [Interpreting results](docs/guide/interpreting_results.md) | What the numbers mean, refusals, exit codes, what a result does not show |
+| [Exact-enumeration example](docs/guide/exact_example.md) | The software paper's Section 3.1 example, step by step |
 | [Local interface](docs/guide/interface.md) | The browser interface, with screenshots |
 | [User reference](docs/guide/reference.md) | File workflow, attainability guard, recovery, interface details, evidence export, input limits, examples, Python API |
 | [Development and platform record](docs/guide/development.md) | Locked environment, CI, containers, API reference build, performance, platform test rounds |
@@ -166,14 +169,18 @@ are not redistributed.
 
 ## Citation, licence and support
 
-- Cite the software with `CITATION.cff`; it names the Zenodo concept DOI of the archived releases.
+- Cite the software with `CITATION.cff`; it names the Zenodo version DOI of release 0.1.2. The
+  software paper's claims are mapped to tests, examples and archived records in
+  `docs/paper/selcal_softwarex_manifest.json`.
 - Licence: BSD 3-Clause (`LICENSE.txt`; `Licence.txt` is an identical copy required by SoftwareX).
-- Questions and problems: the issue tracker of the public repository, or the maintainer contact
-  in `CITATION.cff`.
+- Questions and problems: the issue tracker of the public repository, or software support at
+  vincentdsnail@gmail.com. The author e-mail in `CITATION.cff` is the institutional contact.
 
 ## Project status
 
-Version 0.1.1 (tagged `v0.1.1` on 2026-10-12, UTC-7) is a bug-fix release; see `CHANGELOG.md`.
+Version 0.1.2 (tagged `v0.1.2` on 2026-10-16, UTC-7) corrects the scientific-assumption advisory and
+adds the exact-enumeration example and the paper manifest; the calibration code is that of 0.1.1, a
+bug-fix release (tagged `v0.1.1` on 2026-10-12, UTC-7). See `CHANGELOG.md`.
 Version 0.1.0 was the first release: tagged `v0.1.0` on 2026-10-09 (UTC-7), published as a
 GitHub release on 2026-10-10 (UTC) and archived on Zenodo (DOI in `CITATION.cff`). Changes made
 after a tag are listed under *Unreleased* in `CHANGELOG.md`; contribution and maintenance rules

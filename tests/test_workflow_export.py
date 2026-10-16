@@ -371,10 +371,15 @@ def test_html_budget_stops_before_later_sections(tmp_path, monkeypatch):
         calls.append(text)
         return original(text)
 
+    def unexpected_configuration(*args, **kwargs):
+        pytest.fail("The configuration must not be encoded after the summary exceeds the cap")
+
     monkeypatch.setattr(workflow.html, "escape", escape)
+    monkeypatch.setattr(workflow, "encode_workflow_config", unexpected_configuration)
+    oversized_summary = {"large": "<&中" * 10000}
     with pytest.raises(workflow.WorkflowError, match="report_size_limit"):
-        workflow._render_report(record, {"large": "<&中" * 10000}, 2000)
-    assert len(calls) == 1
+        workflow._render_report(record, oversized_summary, 50000)
+    assert calls[-1] == json.dumps(oversized_summary, indent=2)
 
 
 def test_valid_large_diagnostics_expand_past_cap_without_creating_destination(tmp_path):

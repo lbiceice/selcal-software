@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "name": "SelCal",
   "description": "Selection-aware calibration of scanned-lag dependence tests between two time series",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "https://spdx.org/licenses/BSD-3-Clause",
   "programmingLanguage": "Python",
   "runtimePlatform": "Python >=3.11",
@@ -29,7 +29,7 @@
       "@type": "Person",
       "givenName": "Bingbing",
       "familyName": "Liang",
-      "email": "vincentdsnail@gmail.com",
+      "email": "lbice@gzgs.edu.cn",
       "@id": "https://orcid.org/0009-0007-5344-0594",
       "affiliation": [
         {
@@ -42,6 +42,6 @@
   "codeRepository": "https://github.com/lbiceice/selcal-software",
   "issueTracker": "https://github.com/lbiceice/selcal-software/issues",
   "datePublished": "2026-10-09",
-  "dateModified": "2026-10-12",
-  "identifier": "https://doi.org/10.5281/zenodo.23332111"
+  "dateModified": "2026-10-16",
+  "identifier": "https://doi.org/10.5281/zenodo.23415845"
 }

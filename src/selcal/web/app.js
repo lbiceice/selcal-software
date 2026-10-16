@@ -120,6 +120,7 @@ function clearCheckDisplay() {
   clearArtifactDisplay();
   $("verification-status").textContent = "No current content-check result.";
   $("result-summary").replaceChildren();
+  showScientificAssumptions(null);
   $("terminal").textContent = "No result for this request. Reselect a saved job to inspect its earlier observations.";
 }
 function clearArtifactDisplay() {
@@ -225,9 +226,26 @@ function syncForm(text) {
   for (const [id, key] of [["statistic", "statistic_name"], ["null-model", "null_name"], ["selection", "selection_rule"]]) setOption(id, JSON.parse(plan[key]));
   for (const [id, key] of [["statistic-params", "statistic_params"], ["null-params", "null_params"], ["replicates", "replicates"], ["alpha", "alpha"], ["tolerance", "tie_tolerance"], ["seed", "root_seed"]]) $(id).value = plan[key];
 }
+function showScientificAssumptions(science) {
+  const target = $("scientific-assumptions");
+  target.replaceChildren();
+  if (!science) {
+    target.textContent = "Use Validate to read the declared assumptions for this saved plan. Executability does not verify scientific validity.";
+    return;
+  }
+  const scope = document.createElement("p"), list = document.createElement("ul");
+  scope.textContent = `${science.status}: ${science.note}`;
+  for (const item of science.assumptions) {
+    const row = document.createElement("li");
+    row.textContent = item.statement;
+    list.append(row);
+  }
+  target.append(scope, list);
+}
 function showJob(job) {
   latestJob = job;
   const data = job.result && job.result.data;
+  showScientificAssumptions(selectedId === job.id && data && data.preflight && data.preflight.scientific_assumptions);
   const rows = [["Job", job.id], ["Operation state", job.state], ["Input", job.input_status], ["Raw input SHA-256", job.input_sha256 || "Not admitted"], ["Configuration SHA-256", job.config_sha256]];
   $("verification-status").textContent = job.record_target && job.record_target.available
     ? "Saved record target available. Availability is not verification."

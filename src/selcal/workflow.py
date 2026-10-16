@@ -227,16 +227,20 @@ _SCIENTIFIC_ASSUMPTIONS: dict[str, tuple[tuple[str, str], ...]] = {
     "circular_shift_v2": (
         (
             "circular_shift_exchangeability",
-            "Under the null, circular shifts of the source are exchangeable with the observed "
-            "alignment: exact for circular series, approximate for stationary series whose ends "
-            "join without a large jump; trends and seasonality should be removed beforehand.",
+            "The stated randomization error-rate guarantee requires that, under the null, the "
+            "joint distribution of (X, Y) is invariant under every circular shift of X while Y "
+            "is held fixed (the complete cyclic group). Complete enumeration traverses the "
+            "reference distribution; it does not establish error-rate control. Stationarity or "
+            "matching endpoints alone is not sufficient, nor does detrending establish this "
+            "invariance.",
         ),
     ),
     "block_shuffle_v2": (
         (
             "block_exchangeability",
-            "Under the null, source blocks are exchangeable: dependence within the source should "
-            "be shorter than the block length.",
+            "Under the null, source blocks must be exchangeable; choosing a block length does "
+            "not establish this. Block shuffle did not meet the study's adoption criterion "
+            "and remains experimental, not a validated fallback when a circular plan is refused.",
         ),
     ),
     "lagged_pearson_v1": (
@@ -249,7 +253,10 @@ _SCIENTIFIC_ASSUMPTIONS: dict[str, tuple[tuple[str, str], ...]] = {
     "equal_width_binned_nette_v1": (
         (
             "binned_estimator_adequacy",
-            "The binned transfer-entropy estimate depends on the bin count and sample size.",
+            "The binned transfer-entropy estimate depends on the bin count and sample size. "
+            "This experimental adapter has not been statistically validated in the SelCal "
+            "study. Numerical reproducibility and the generic replicate-count guard do not "
+            "establish its statistical calibration.",
         ),
     ),
 }
@@ -267,6 +274,16 @@ def _declared_assumptions(request: PlanRequestV2) -> list[dict[str, str]]:
         *_SCIENTIFIC_ASSUMPTIONS.get(request.statistic_name, ()),
     )
     return [{"code": code, "statement": statement} for code, statement in items]
+
+
+def _scientific_assumptions(request: PlanRequestV2) -> dict[str, Any]:
+    """Current interpretation guidance, not a recorded or verified distributional fact."""
+    return {
+        "status": "DECLARED_NOT_VERIFIED",
+        "assumptions": _declared_assumptions(request),
+        "note": "SelCal cannot verify these assumptions from the observed data; the analyst "
+        "must justify them. An executable plan is not an error-rate guarantee.",
+    }
 
 
 def _resource_budget(request: PlanRequestV2, sample_count: int) -> dict[str, Any]:
@@ -312,10 +329,12 @@ NON_GROUP_NULL = "REFUSE_NON_GROUP_NULL"
 
 
 def null_validity(request: PlanRequestV2) -> dict[str, Any]:
-    """Whether the null's states form a group, the condition for a valid randomization p.
+    """Check supported group structure, not the data distribution's null invariance.
 
-    With p = (1 + E) / (B + 1) the test keeps its level when the reference states are a group
-    acting on the data (Hemerik and Goeman 2018). The circular shifts with min_shift = 1 are
+    With p = (1 + E) / (B + 1), the group-randomization guarantee also requires the joint
+    null distribution to be invariant under the group's action on the source alone
+    (Hemerik and Goeman 2018); this function cannot verify that assumption.
+    The circular shifts with min_shift = 1 are
     the whole cyclic group. For 1 < min_shift < n/2 the remaining shifts include two
     consecutive ones but not all shifts, so they are not a group, for any statistic and any
     number of candidates. SelCal supports only the complete group and refuses every
@@ -370,11 +389,7 @@ def preflight(request: PlanRequestV2, sample_count: int) -> dict[str, Any]:
             "null_validity": validity,
             "attainability": attainable,
         },
-        "scientific_assumptions": {
-            "status": "DECLARED_NOT_VERIFIED",
-            "assumptions": _declared_assumptions(request),
-            "note": "SelCal cannot check these from the data; the analyst must justify them.",
-        },
+        "scientific_assumptions": _scientific_assumptions(request),
     }
 
 
@@ -845,6 +860,7 @@ def _render_report(record: WorkflowRecord, summary: dict[str, Any], max_bytes: i
     """Render already checked content, stopping accumulation at each bounded section."""
     _limit(max_bytes)
     result = record.result
+    science = _scientific_assumptions(record.config.request)
 
     def sections() -> Iterator[str]:
         yield (
@@ -889,7 +905,15 @@ def _render_report(record: WorkflowRecord, summary: dict[str, Any], max_bytes: i
                     f'<div><dt>{key}</dt><dd data-summary-key="{key}">'
                     f"{html.escape(json.dumps(summary[key]))}</dd></div>"
                 )
-        yield "</dl><h2>Recorded details</h2><p>Expand a section to inspect its full content.</p>"
+        yield "</dl><h2>Scientific assumptions: DECLARED_NOT_VERIFIED</h2>"
+        yield (
+            "<p>Current guidance for the recorded plan; not proof that these conditions held "
+            "when the record was created.</p>"
+        )
+        yield f"<p>{html.escape(science['note'])}</p><ul>"
+        for item in science["assumptions"]:
+            yield f"<li>{html.escape(item['statement'])}</li>"
+        yield "</ul><h2>Recorded details</h2><p>Expand a section to inspect its full content.</p>"
         yield "<details><summary>Summary</summary><pre>"
         yield html.escape(json.dumps(summary, indent=2))
         yield "</pre></details><details><summary>Configuration</summary><pre>"

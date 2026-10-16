@@ -57,6 +57,8 @@
     <p id="verification-status" class="hint">No current content check.</p>
     <p class="hint">Verify saved result checks input, plan and result consistency without replay. It does not authenticate historical execution. A saved check is an observation, not current-byte verification; check again to examine the saved record now.</p>
     <dl id="result-summary"></dl>
+    <h3>Scientific assumptions</h3>
+    <div id="scientific-assumptions" aria-live="polite">Use Validate to read the declared assumptions for this saved plan. Executability does not verify scientific validity.</div>
     <details open><summary>Progress and operation details</summary><pre id="progress">No operation yet.</pre></details>
     <details><summary>Full terminal result and hashes</summary><pre id="terminal">No result yet.</pre></details>
     <h3>Saved reports and evidence</h3>
@@ -69,7 +71,8 @@
   </section>
   <section aria-labelledby="limits-heading" class="limits">
     <h2 id="limits-heading">What this result means</h2>
-    <p>Circular-shift calibration requires a defensible circular exchangeability assumption; block shuffle requires exchangeable blocks with an appropriate block length. Prespecify the candidate family and parameters for your data. Selecting a lag does not establish causality. A non-rejection does not show there is no association.</p>
+    <p>The circular-shift error-rate guarantee requires the null joint distribution of (X, Y) to be invariant under every circular shift of X while Y is held fixed. Complete enumeration only traverses the reference distribution. Stationarity, matching endpoints or detrending alone do not establish this condition, and Validate cannot verify it. Prespecify the candidate family and parameters for your data. Selecting a lag does not establish causality. A non-rejection does not show there is no association.</p>
+    <p>Experimental adapters: binned transfer entropy has not been statistically validated in the SelCal study. Block shuffle did not meet the study's adoption criterion and is not a validated fallback. The generic replicate-count guard does not validate either adapter's statistical calibration.</p>
     <p>NOT_EVALUABLE means the configured procedure could not supply an evaluable result. It is not p = 1, not non-significance, and not an operational failure. Read its precise failure stage.</p>
     <p>Resume requires the original code and environment and a valid checkpoint. Interrupted initialization may not leave a recoverable checkpoint. Older jobs without an explicit saved-record reference can use command-line verify, report and export; the UI never guesses old result paths. Final integration, wider usability and release validation remain pending.</p>
     <p>Keep the terminal open. Press Ctrl-C there to stop this helper and its own active child. Closing this browser tab does not stop the server. Saved inputs, configuration and operation files stay in your workspace.</p>

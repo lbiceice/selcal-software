@@ -3,7 +3,31 @@
 All notable changes to SelCal are listed here. Versions follow [Semantic Versioning](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 0.1.2 - 2026-10-16
+
+Clarification release for the software paper. The calibration code, the statistics, the nulls and
+the lagged-Pearson results are those of 0.1.1.
+
+### Changed
+
+- Scientific-assumption advisory (`selcal validate`, `scientific_assumptions`): the circular-shift
+  statement now gives the condition the error-rate guarantee needs, that under the null the joint
+  distribution of (X, Y) is invariant under every circular shift of X with Y held fixed, and says
+  that stationarity, matching endpoints or detrending alone do not establish it. 0.1.1 described
+  the null as exact for circular series and approximate for stationary series whose ends join
+  without a large jump, which is weaker. The block-shuffle and binned transfer-entropy statements
+  now say that these adapters remain experimental and are not validated fallbacks.
+- The HTML report shows the declared assumptions of the recorded plan as current guidance
+  (`DECLARED_NOT_VERIFIED`), not as an observation made when the record was created.
+- The local interface shows the declared assumptions after **Validate** and states the same
+  condition in its *What this result means* panel.
+
+### Added
+
+- `examples/workflow/pearson_exact.json` and `docs/guide/exact_example.md`: the exact-enumeration
+  example of the software paper (selected lag 2, E = 2 of 99, p = 0.03).
+- `docs/paper/selcal_softwarex_manifest.json`: maps the software paper's claims to tests, examples
+  and the archived validation records.
 
 ### Fixed
 
@@ -19,6 +43,7 @@ the format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Documentation
 
+- User guide and reference: the joint-invariance condition and the experimental-adapter limits.
 - README: the plan is described as resolved before calibration, which does not show when the
   analyst first saw the data; the dengue-climate case is called a software example on publicly
   archived series, not a re-analysis, matching the software paper.

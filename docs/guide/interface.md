@@ -48,6 +48,12 @@ example, lag 2 is selected and p = 3/200 = 0.015, so the null is rejected at alp
 **Resume** continues an interrupted job with its original input and plan; **Verify saved result**
 re-checks the saved record.
 
+After **Validate**, the existing result area displays `scientific_assumptions` without opening
+the full terminal JSON. `DECLARED_NOT_VERIFIED` separates plan executability from scientific
+validity. Editing the plan clears that observation; validate the saved plan again. The HTML
+report shows the same guidance for the recorded plan, without claiming it was verified or
+recorded at the time of execution.
+
 ## 3. Reports, evidence and interpretation
 
 ![Download buttons, the download status line and the interpretation notes](images/ui_3_artifacts.png)
@@ -58,5 +64,7 @@ for a spreadsheet. Before handing each file to the browser, the page checks its 
 and then names the file, its size and its checked original in the workspace. If the browser or a
 download manager does not save the file, copy that original from the workspace folder.
 
-The **What this result means** panel states the assumptions behind the result. The longer
+The **What this result means** panel also states the joint circular-shift invariance condition
+and the study's experimental-adapter limits: transfer entropy was not statistically validated,
+and block shuffle did not meet the adoption criterion. The longer
 explanation is in [Interpreting SelCal results](interpreting_results.md).

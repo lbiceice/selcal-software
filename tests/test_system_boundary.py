@@ -192,7 +192,7 @@ def test_top_level_public_surface_is_minimal_and_resolves_exact_objects() -> Non
     assert selcal.PlanResolution is PlanResolution
     assert selcal.ResolvedScientificPlan is ResolvedScientificPlan
     assert selcal.resolve_plan is resolve_plan
-    assert selcal.__version__ == "0.1.1"
+    assert selcal.__version__ == "0.1.2"
     assert not hasattr(selcal, "AdapterRegistry")
 
 

@@ -8,10 +8,14 @@ sections "Run a file-to-report workflow" and "Save and read complete result cont
 
 You scanned a small, pre-declared set of lags between a source series and a target series and
 picked the lag with the strongest dependence (by default the largest absolute lagged Pearson
-correlation). SelCal asks: **is a maximum this strong unusual if the two series were unrelated
-apart from their own autocorrelation?** It answers by circularly shifting the source series,
+correlation). SelCal asks: **where does this maximum fall in the circular-shift reference
+distribution?** It answers by circularly shifting the source series,
 repeating the *whole* lag search on every shifted copy, and comparing the observed maximum with
-the maxima of the shifted copies.
+the maxima of the shifted copies. Interpreting the resulting reference p-value as a test with
+an error-rate guarantee requires the joint null distribution of (X, Y) to be invariant under
+every circular shift of X while Y is held fixed. The complete cyclic group and the same fixed
+candidate family, common support and statistic are used throughout. Full enumeration traverses
+this reference distribution; it cannot establish the distributional assumption.
 
 Two common shortcuts answer a different question and give p-values that are too small:
 
@@ -69,9 +73,14 @@ Example: the bundled 100-sample series with lags 1–10 gives `REFUSE_NULL_STATE
   under the circular-shift null with this n, lag set and alpha. Check `monte_carlo_power_cap` and
   the length of the series before concluding anything about absence.
 - **Significant is not causation**, and SelCal does not estimate an effect size.
-- **The null is circular-shift exchangeability.** It is exact for circular series and approximate
-  otherwise. Remove trends and seasonality first: with seasonal data, shifts near multiples of the
-  period keep the seasonal phase and make the test less informative.
+- **Circular-shift validity is a joint-distribution assumption.** Under the null, the joint
+  distribution of (X, Y) must be invariant under every circular shift of X with Y held fixed
+  for the stated randomization guarantee. Stationarity, matching endpoints, circular indexing
+  or detrending alone is not sufficient. `validate` checks executability, not this assumption.
+- **Experimental adapters are not validated fallbacks.** Binned transfer entropy has not been
+  statistically validated in the SelCal study. Block shuffle was evaluated but did not meet
+  the study's adoption criterion. The generic `1/(B+1)` guard does not establish the statistical
+  calibration of either adapter.
 - **One pair of series.** SelCal does not correct across many pairs, align or resample series, or
   impute missing values.
 - **The lag set must be fixed before seeing the data.** If lags were chosen after looking, the

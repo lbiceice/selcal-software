@@ -1,16 +1,16 @@
 cff-version: 1.2.0
 message: "If you use SelCal, please cite it as below."
 title: "SelCal: selection-aware calibration of scanned-lag dependence tests"
-version: "0.1.1"
-date-released: "2026-10-12"
-doi: 10.5281/zenodo.23332111
+version: "0.1.2"
+date-released: "2026-10-16"
+doi: 10.5281/zenodo.23415845
 license: BSD-3-Clause
 type: software
 repository-code: "https://github.com/lbiceice/selcal-software"
 authors:
   - family-names: Liang
     given-names: Bingbing
-    email: vincentdsnail@gmail.com
+    email: lbice@gzgs.edu.cn
     affiliation: "School of AI Engineering, Guangzhou College of Technology and Business, Guangzhou, China"
     orcid: "https://orcid.org/0009-0007-5344-0594"
 keywords:

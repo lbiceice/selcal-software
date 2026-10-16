@@ -118,6 +118,14 @@ executable, `validate` exits 2 with outcome `PLAN_NOT_EXECUTABLE` and the first 
 error, and `run` refuses before any calibration (`resource_budget_exceeded` or
 `unattainable_plan`). The resource check runs first, so an oversized replicate count is refused
 without plan-time arithmetic that grows with it.
+
+For circular shifts, the stated randomization error-rate guarantee requires the joint null
+distribution of (X, Y) to be invariant under every circular shift of X while Y is held fixed.
+Complete enumeration traverses the reference distribution; it does not prove that condition.
+Stationarity, matching endpoints or detrending alone is not sufficient. `null_validity=PASS`
+checks supported group structure only, and `validate` cannot verify distributional invariance.
+The same declared assumptions are shown by the current HTML report renderer; these are current
+interpretation guidance for the recorded plan, not authenticated historical observations.
 The record captures complete raw input, normalized request, full result and
 recorded software identity. Reports and records must use new output paths.
 
@@ -385,6 +393,11 @@ SelCal returns `status="not_evaluable"`, `failure_stage="null_bind"`, and null d
 fields without executing any surrogate replicates. `NOT_EVALUABLE is not evidence of no effect or non-significance.`
 
 ## Exercise binned NetTE with block shuffle
+
+Both adapters remain experimental: binned transfer entropy has not been statistically validated
+in the SelCal study, and block shuffle did not meet the study's adoption criterion. Block shuffle
+is not a validated fallback for a refused circular plan. The generic replicate-count guard and
+deterministic numerical results do not establish either adapter's statistical calibration.
 
 Binned NetTE uses equal-width bins between the observed minimum and maximum, with edges computed
 exactly and rounded once, so they do not depend on the NumPy version. The information is
